@@ -1,4 +1,4 @@
-// Copyright (c) 2023-present The Bitcoin Core developers
+// Copyright (c) 2023-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -204,7 +204,7 @@ FUZZ_TARGET(ephemeral_package_eval, .init = initialize_tx_pool)
     std::unordered_map<COutPoint, CAmount, SaltedOutpointHasher> outpoints_value;
     for (const auto& outpoint : g_outpoints_coinbase_init_mature) {
         Assert(mempool_outpoints.insert(outpoint).second);
-        outpoints_value[outpoint] = 50 * COIN;
+        outpoints_value[outpoint] = 500000 * COIN;
     }
 
     auto outpoints_updater = std::make_shared<OutpointsUpdater>(mempool_outpoints);
@@ -307,7 +307,7 @@ FUZZ_TARGET(ephemeral_package_eval, .init = initialize_tx_pool)
             const auto& txid = fuzzed_data_provider.ConsumeBool() ?
                                    txs.back()->GetHash() :
                                    PickValue(fuzzed_data_provider, mempool_outpoints).hash;
-            const auto delta = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-50 * COIN, +50 * COIN);
+            const auto delta = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-500000 * COIN, +500000 * COIN);
             // We only prioritise out of mempool transactions since PrioritiseTransaction doesn't
             // filter for ephemeral dust
             if (tx_pool.exists(txid)) {
@@ -359,7 +359,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
     std::unordered_map<COutPoint, CAmount, SaltedOutpointHasher> outpoints_value;
     for (const auto& outpoint : g_outpoints_coinbase_init_mature) {
         Assert(mempool_outpoints.insert(outpoint).second);
-        outpoints_value[outpoint] = 50 * COIN;
+        outpoints_value[outpoint] = 500000 * COIN;
     }
 
     auto outpoints_updater = std::make_shared<OutpointsUpdater>(mempool_outpoints);
@@ -475,7 +475,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
             const auto& txid = fuzzed_data_provider.ConsumeBool() ?
                                    txs.back()->GetHash() :
                                    PickValue(fuzzed_data_provider, mempool_outpoints).hash;
-            const auto delta = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-50 * COIN, +50 * COIN);
+            const auto delta = fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-500000 * COIN, +500000 * COIN);
             tx_pool.PrioritiseTransaction(txid, delta);
         }
 
@@ -492,7 +492,7 @@ FUZZ_TARGET(tx_package_eval, .init = initialize_tx_pool)
         // Exercise client_maxfeerate logic
         std::optional<CFeeRate> client_maxfeerate{};
         if (fuzzed_data_provider.ConsumeBool()) {
-            client_maxfeerate = CFeeRate(fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-1, 50 * COIN), 100);
+            client_maxfeerate = CFeeRate(fuzzed_data_provider.ConsumeIntegralInRange<CAmount>(-1, 500000 * COIN), 100);
         }
 
         const auto result_package = WITH_LOCK(::cs_main,

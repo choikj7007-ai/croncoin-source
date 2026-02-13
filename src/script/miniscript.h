@@ -1,9 +1,9 @@
-// Copyright (c) 2019-present The Bitcoin Core developers
+// Copyright (c) 2019-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SCRIPT_MINISCRIPT_H
-#define BITCOIN_SCRIPT_MINISCRIPT_H
+#ifndef CRONCOIN_SCRIPT_MINISCRIPT_H
+#define CRONCOIN_SCRIPT_MINISCRIPT_H
 
 #include <algorithm>
 #include <compare>
@@ -2307,7 +2307,7 @@ enum class DecodeContext {
     ENDIF_ELSE,
 };
 
-//! Parse a miniscript from a bitcoin script
+//! Parse a miniscript from a croncoin script
 template <typename Key, typename Ctx, typename I>
 inline std::optional<Node<Key>> DecodeScript(I& in, I last, const Ctx& ctx)
 {
@@ -2720,4 +2720,4 @@ inline std::optional<Node<typename Ctx::Key>> FromScript(const CScript& script, 
 
 } // namespace miniscript
 
-#endif // BITCOIN_SCRIPT_MINISCRIPT_H
+#endif // CRONCOIN_SCRIPT_MINISCRIPT_H

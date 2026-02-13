@@ -1,9 +1,9 @@
-// Copyright (c) 2017-present The Bitcoin Core developers
+// Copyright (c) 2017-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_RPC_UTIL_H
-#define BITCOIN_RPC_UTIL_H
+#ifndef CRONCOIN_RPC_UTIL_H
+#define CRONCOIN_RPC_UTIL_H
 
 #include <addresstype.h>
 #include <consensus/amount.h>
@@ -119,13 +119,13 @@ int ParseVerbosity(const UniValue& arg, int default_verbosity, bool allow_bool);
  * Validate and return a CAmount from a UniValue number or string.
  *
  * @param[in] value     UniValue number or string to parse.
- * @param[in] decimals  Number of significant digits (default: 8).
+ * @param[in] decimals  Number of significant digits (default: 3).
  * @returns a CAmount if the various checks pass.
  */
-CAmount AmountFromValue(const UniValue& value, int decimals = 8);
+CAmount AmountFromValue(const UniValue& value, int decimals = 3);
 /**
- * Parse a json number or string, denoting BTC/kvB, into a CFeeRate (sat/kvB).
- * Reject negative values or rates larger than 1BTC/kvB.
+ * Parse a json number or string, denoting CRN/kvB, into a CFeeRate (cros/kvB).
+ * Reject negative values or rates larger than 1CRN/kvB.
  */
 CFeeRate ParseFeeRate(const UniValue& json);
 
@@ -529,4 +529,4 @@ std::vector<RPCResult> ScriptPubKeyDoc();
  */
 uint256 GetTarget(const CBlockIndex& blockindex, uint256 pow_limit);
 
-#endif // BITCOIN_RPC_UTIL_H
+#endif // CRONCOIN_RPC_UTIL_H

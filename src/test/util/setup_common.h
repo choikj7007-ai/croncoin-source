@@ -1,9 +1,9 @@
-// Copyright (c) 2015-present The Bitcoin Core developers
+// Copyright (c) 2015-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_TEST_UTIL_SETUP_COMMON_H
-#define BITCOIN_TEST_UTIL_SETUP_COMMON_H
+#ifndef CRONCOIN_TEST_UTIL_SETUP_COMMON_H
+#define CRONCOIN_TEST_UTIL_SETUP_COMMON_H
 
 #include <common/args.h> // IWYU pragma: export
 #include <kernel/caches.h>
@@ -44,7 +44,7 @@ extern const std::function<std::vector<const char*>()> G_TEST_COMMAND_LINE_ARGUM
 /** Retrieve the unit test name. */
 extern const std::function<std::string()> G_TEST_GET_FULL_NAME;
 
-static constexpr CAmount CENT{1000000};
+static constexpr CAmount CENT{COIN / 100};
 
 /** Register common test args. Shared across binaries that rely on the test framework. */
 void SetupCommonTestArgs(ArgsManager& argsman);
@@ -94,7 +94,7 @@ struct BasicTestingSetup {
      * compatibility. In the future, it will point to m_args to further isolate
      * test environments.
      *
-     * @see https://github.com/bitcoin/bitcoin/issues/25055 for additional context.
+     * @see https://github.com/croncoin/croncoin/issues/25055 for additional context.
      */
     ArgsManager m_args;
 };
@@ -300,4 +300,4 @@ private:
     const std::string m_reason;
 };
 
-#endif // BITCOIN_TEST_UTIL_SETUP_COMMON_H
+#endif // CRONCOIN_TEST_UTIL_SETUP_COMMON_H

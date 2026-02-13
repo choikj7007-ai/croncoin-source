@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2009-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,7 +27,7 @@ std::string FormatMoney(const CAmount n)
         quotient = -quotient;
         remainder = -remainder;
     }
-    std::string str = strprintf("%d.%08d", quotient, remainder);
+    std::string str = strprintf("%d.%03d", quotient, remainder);
 
     // Right-trim excess zeros before the decimal point:
     int nTrim = 0;

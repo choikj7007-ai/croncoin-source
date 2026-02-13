@@ -1,0 +1,93 @@
+#!/sbin/openrc-run
+
+# backward compatibility for existing gentoo layout
+#
+if [ -d "/var/lib/croncoin/.croncoin" ]; then
+	CRONCOIND_DEFAULT_DATADIR="/var/lib/croncoin/.croncoin"
+else
+	CRONCOIND_DEFAULT_DATADIR="/var/lib/croncoind"
+fi
+
+CRONCOIND_CONFIGFILE=${CRONCOIND_CONFIGFILE:-/etc/croncoin/croncoin.conf}
+CRONCOIND_PIDDIR=${CRONCOIND_PIDDIR:-/var/run/croncoind}
+CRONCOIND_PIDFILE=${CRONCOIND_PIDFILE:-${CRONCOIND_PIDDIR}/croncoind.pid}
+CRONCOIND_DATADIR=${CRONCOIND_DATADIR:-${CRONCOIND_DEFAULT_DATADIR}}
+CRONCOIND_USER=${CRONCOIND_USER:-${CRONCOIN_USER:-croncoin}}
+CRONCOIND_GROUP=${CRONCOIND_GROUP:-croncoin}
+CRONCOIND_BIN=${CRONCOIND_BIN:-/usr/bin/croncoind}
+CRONCOIND_NICE=${CRONCOIND_NICE:-${NICELEVEL:-0}}
+CRONCOIND_OPTS="${CRONCOIND_OPTS:-${CRONCOIN_OPTS}}"
+
+name="CronCoin Core Daemon"
+description="CronCoin cryptocurrency P2P network daemon"
+
+command="/usr/bin/croncoind"
+command_args="-pid=\"${CRONCOIND_PIDFILE}\" \
+		-conf=\"${CRONCOIND_CONFIGFILE}\" \
+		-datadir=\"${CRONCOIND_DATADIR}\" \
+		-daemon \
+		${CRONCOIND_OPTS}"
+
+required_files="${CRONCOIND_CONFIGFILE}"
+start_stop_daemon_args="-u ${CRONCOIND_USER} \
+			-N ${CRONCOIND_NICE} -w 2000"
+pidfile="${CRONCOIND_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${CRONCOIND_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${CRONCOIND_USER}:${CRONCOIND_GROUP}" \
+	"${CRONCOIND_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${CRONCOIND_USER}:${CRONCOIND_GROUP}" \
+	"${CRONCOIND_PIDDIR}"
+
+	checkpath -f \
+	-o "${CRONCOIND_USER}:${CRONCOIND_GROUP}" \
+	-m 0660 \
+	"${CRONCOIND_CONFIGFILE}"
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if grep -qs '^rpcuser=' "${CRONCOIND_CONFIGFILE}" && \
+		! grep -qs '^rpcpassword=' "${CRONCOIND_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run croncoind."
+		eerror "The setting must appear in ${CRONCOIND_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following "
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"CronCoin Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

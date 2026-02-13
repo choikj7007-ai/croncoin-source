@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) The Bitcoin Core developers
+# Copyright (c) The CronCoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
@@ -21,26 +21,26 @@ def run(cmd, **kwargs):
 
 
 def print_version():
-    bitcoind = Path.cwd() / "bin" / "bitcoind.exe"
-    run([str(bitcoind), "-version"])
+    croncoind = Path.cwd() / "bin" / "croncoind.exe"
+    run([str(croncoind), "-version"])
 
 
 def check_manifests():
     release_dir = Path.cwd() / "bin"
-    manifest_path = release_dir / "bitcoind.manifest"
+    manifest_path = release_dir / "croncoind.manifest"
 
-    cmd_bitcoind_manifest = [
+    cmd_croncoind_manifest = [
         "mt.exe",
         "-nologo",
-        f"-inputresource:{release_dir / 'bitcoind.exe'}",
+        f"-inputresource:{release_dir / 'croncoind.exe'}",
         f"-out:{manifest_path}",
     ]
-    run(cmd_bitcoind_manifest)
+    run(cmd_croncoind_manifest)
     print(manifest_path.read_text())
 
     skipped = {  # Skip as they currently do not have manifests
         "fuzz.exe",
-        "bench_bitcoin.exe",
+        "bench_croncoin.exe",
         "test_kernel.exe",
     }
     for entry in release_dir.iterdir():
@@ -97,7 +97,7 @@ def run_functional_tests():
         # feature_unsupported_utxo_db.py fails on Windows because of emojis in the test data directory.
         "--exclude",
         "feature_unsupported_utxo_db.py",
-        # See https://github.com/bitcoin/bitcoin/issues/31409.
+        # See https://github.com/croncoin/croncoin/issues/31409.
         "--exclude",
         "wallet_multiwallet.py",
     ]
@@ -119,9 +119,9 @@ def run_functional_tests():
 def run_unit_tests():
     # Can't use ctest here like other jobs as we don't have a CMake build tree.
     commands = [
-        ["./bin/test_bitcoin-qt.exe"],
+        ["./bin/test_croncoin-qt.exe"],
         # Intentionally run sequentially here, to catch test case failures caused by dirty global state from prior test cases:
-        ["./bin/test_bitcoin.exe", "-l", "test_suite"],
+        ["./bin/test_croncoin.exe", "-l", "test_suite"],
         ["./src/secp256k1/bin/exhaustive_tests.exe"],
         ["./src/secp256k1/bin/noverify_tests.exe"],
         ["./src/secp256k1/bin/tests.exe"],

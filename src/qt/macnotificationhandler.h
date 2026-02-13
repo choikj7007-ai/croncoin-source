@@ -1,9 +1,9 @@
-// Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2011-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_MACNOTIFICATIONHANDLER_H
-#define BITCOIN_QT_MACNOTIFICATIONHANDLER_H
+#ifndef CRONCOIN_QT_MACNOTIFICATIONHANDLER_H
+#define CRONCOIN_QT_MACNOTIFICATIONHANDLER_H
 
 #include <QObject>
 
@@ -24,4 +24,4 @@ public:
 };
 
 
-#endif // BITCOIN_QT_MACNOTIFICATIONHANDLER_H
+#endif // CRONCOIN_QT_MACNOTIFICATIONHANDLER_H

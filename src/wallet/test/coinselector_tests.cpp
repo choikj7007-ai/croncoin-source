@@ -1,4 +1,4 @@
-// Copyright (c) 2017-present The Bitcoin Core developers
+// Copyright (c) 2017-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -590,9 +590,9 @@ BOOST_AUTO_TEST_CASE(knapsack_solver_test)
         for (int i = 0; i < RUN_TESTS; i++) {
             // picking 50 from 100 coins doesn't depend on the shuffle,
             // but does depend on randomness in the stochastic approximation code
-            const auto result25 = KnapsackSolver(GroupCoins(available_coins.All()), 50 * COIN, CENT);
+            const auto result25 = KnapsackSolver(GroupCoins(available_coins.All()), 500000 * COIN, CENT);
             BOOST_CHECK(result25);
-            const auto result26 = KnapsackSolver(GroupCoins(available_coins.All()), 50 * COIN, CENT);
+            const auto result26 = KnapsackSolver(GroupCoins(available_coins.All()), 500000 * COIN, CENT);
             BOOST_CHECK(result26);
             BOOST_CHECK(!EqualResult(*result25, *result26));
 
@@ -1329,14 +1329,14 @@ BOOST_AUTO_TEST_CASE(check_max_selection_weight)
                     add_coin(available_coins, wallet, CAmount(0.033 * COIN), CFeeRate(0), 144, false, 0, true);
                 }
 
-                add_coin(available_coins, wallet, CAmount(50 * COIN), CFeeRate(0), 144, false, 0, true);
+                add_coin(available_coins, wallet, CAmount(500000 * COIN), CFeeRate(0), 144, false, 0, true);
                 return available_coins;
             },
             m_node);
 
         BOOST_CHECK(result);
         // Verify that the 50 BTC UTXO was selected, and result is below max_weight
-        BOOST_CHECK(has_coin(result->GetInputSet(), CAmount(50 * COIN)));
+        BOOST_CHECK(has_coin(result->GetInputSet(), CAmount(500000 * COIN)));
         BOOST_CHECK_LE(result->GetWeight(), max_weight);
     }
 

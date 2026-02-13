@@ -1,40 +1,40 @@
 v30.0 Release Notes
 ===================
 
-Bitcoin Core version v30.0 is now available from:
+Cron Coin Core version v30.0 is now available from:
 
-  <https://bitcoincore.org/bin/bitcoin-core-30.0/>
+  <https://croncoincore.org/bin/croncoin-core-30.0/>
 
 This release includes new features, various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin/bitcoin/issues>
+  <https://github.com/croncoin/croncoin/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoincore.org/en/list/announcements/join/>
+  <https://croncoincore.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
-installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on macOS)
-or `bitcoind`/`bitcoin-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/CronCoin-Qt` (on macOS)
+or `croncoind`/`croncoin-qt` (on Linux).
 
-Upgrading directly from a version of Bitcoin Core that has reached its EOL is
+Upgrading directly from a version of Cron Coin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bitcoin Core are generally supported.
+wallet versions of Cron Coin Core are generally supported.
 
 Compatibility
 ==============
 
-Bitcoin Core is supported and tested on operating systems using the
-Linux Kernel 3.17+, macOS 13+, and Windows 10+. Bitcoin
+Cron Coin Core is supported and tested on operating systems using the
+Linux Kernel 3.17+, macOS 13+, and Windows 10+. CronCoin
 Core should also work on most other Unix-like systems but is not as
-frequently tested on them. It is not recommended to use Bitcoin Core on
+frequently tested on them. It is not recommended to use Cron Coin Core on
 unsupported systems.
 
 Notable changes
@@ -101,15 +101,15 @@ P2P and network changes
   option if they were using it, as the setting will cause an error in future versions
   when it is no longer recognized. (#31829)
 
-New `bitcoin` command
+New `croncoin` command
 ---------------------
 
-- A new `bitcoin` command line tool has been added to make features more discoverable
-  and convenient to use. The `bitcoin` tool just calls other executables and does not
-  implement any functionality on its own. Specifically `bitcoin node` is a synonym for
-  `bitcoind`, `bitcoin gui` is a synonym for `bitcoin-qt`, and `bitcoin rpc` is a synonym
-  for `bitcoin-cli -named`. Other commands and options can be listed with `bitcoin help`.
-  The new `bitcoin` command is an alternative to calling other commands directly, but it
+- A new `croncoin` command line tool has been added to make features more discoverable
+  and convenient to use. The `croncoin` tool just calls other executables and does not
+  implement any functionality on its own. Specifically `croncoin node` is a synonym for
+  `croncoind`, `croncoin gui` is a synonym for `croncoin-qt`, and `croncoin rpc` is a synonym
+  for `croncoin-cli -named`. Other commands and options can be listed with `croncoin help`.
+  The new `croncoin` command is an alternative to calling other commands directly, but it
   doesn't replace them, and there are no plans to deprecate existing commands. (#31375)
 
 External Signing
@@ -120,28 +120,28 @@ External Signing
 IPC Mining Interface
 --------------------
 
-- The new `bitcoin` command does support one new feature: an (experimental) IPC Mining
+- The new `croncoin` command does support one new feature: an (experimental) IPC Mining
   Interface that allows the node to work with Stratum v2 or other mining client software,
-  see (#31098). When the node is started with `bitcoin -m node -ipcbind=unix` it will
+  see (#31098). When the node is started with `croncoin -m node -ipcbind=unix` it will
   listen on a unix socket for IPC client connections, allowing clients to request block
   templates and submit mined blocks. The `-m` option launches a new internal binary
-  (`bitcoin-node` instead of `bitcoind`) and is currently required but will become optional
-  in the future (with [#33229](https://github.com/bitcoin/bitcoin/pull/33229)).
+  (`croncoin-node` instead of `croncoind`) and is currently required but will become optional
+  in the future (with [#33229](https://github.com/croncoin/croncoin/pull/33229)).
 
-- IPC connectivity introduces new dependencies (see [multiprocess.md](https://github.com/bitcoin/bitcoin/blob/master/doc/multiprocess.md)),
+- IPC connectivity introduces new dependencies (see [multiprocess.md](https://github.com/croncoin/croncoin/blob/master/doc/multiprocess.md)),
   which can be turned off with the `-DENABLE_IPC=OFF` build option if you do not intend
   to use IPC. (#31802)
 
 Install changes
 ---------------
 
-- The `test_bitcoin` executable is now installed in `libexec/` instead of `bin/`.
-  It can still be executed directly, or accessed through the new `bitcoin` command
-  as `bitcoin test`. The `libexec/` directory also contains new `bitcoin-node` and
-  `bitcoin-gui` binaries which support IPC features and are called through the
-  `bitcoin` tool. In source builds only, `test_bitcoin-qt`, `bench_bitcoin`, and
-  `bitcoin-chainstate` are also now installed to `libexec/` instead of `bin/` and
-  can be accessed through the new `bitcoin` command. See `bitcoin help` output for
+- The `test_croncoin` executable is now installed in `libexec/` instead of `bin/`.
+  It can still be executed directly, or accessed through the new `croncoin` command
+  as `croncoin test`. The `libexec/` directory also contains new `croncoin-node` and
+  `croncoin-gui` binaries which support IPC features and are called through the
+  `croncoin` tool. In source builds only, `test_croncoin-qt`, `bench_croncoin`, and
+  `croncoin-chainstate` are also now installed to `libexec/` instead of `bin/` and
+  can be accessed through the new `croncoin` command. See `croncoin help` output for
   details. (#31679)
 
 - On Windows, the installer no longer adds a “(64-bit)” suffix to entries in the
@@ -159,7 +159,7 @@ Indexes
   which was stored at `/indexes/coinstats/`. The old version of the index is not deleted
   by the upgraded node in case the user chooses to downgrade their node in the future.
   If the user does not plan to downgrade it is safe for them to remove `/indexes/coinstats/`
-  from their datadir. A future release of Bitcoin Core may remove the old version of the
+  from their datadir. A future release of Cron Coin Core may remove the old version of the
   index automatically. (#30469)
 
 Logging
@@ -177,7 +177,7 @@ Updated RPCs
 ------------
 
 - The `-paytxfee` startup option and the `settxfee` RPC are now deprecated and
-  will be removed in Bitcoin Core 31.0. They allowed the user to set a static fee
+  will be removed in Cron Coin Core 31.0. They allowed the user to set a static fee
   rate for wallet transactions, which could potentially lead to overpaying or underpaying.
   Users should instead rely on fee estimation or specify a fee rate per transaction
   using the `fee_rate` argument in RPCs such as `fundrawtransaction`, `sendtoaddress`,
@@ -262,7 +262,7 @@ Wallet
   to the new descriptor wallet format. Refer to the `migratewallet` RPC for more
   details.
 
-- The legacy wallet removal drops redundant options in the bitcoin-wallet tool,
+- The legacy wallet removal drops redundant options in the croncoin-wallet tool,
   such as `-withinternalbdb`, `-legacy`, and `-descriptors`. Moreover, the
   legacy-only RPCs `addmultisigaddress`, `dumpprivkey`, `dumpwallet`,
   `importaddress`, `importmulti`, `importprivkey`, `importpubkey`,
@@ -435,4 +435,4 @@ Thanks to everyone who directly contributed to this release:
 - zaidmstrr
 
 As well as to everyone that helped with translations on
-[Transifex](https://explore.transifex.com/bitcoin/bitcoin/).
+[Transifex](https://explore.transifex.com/croncoin/croncoin/).

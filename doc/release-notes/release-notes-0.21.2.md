@@ -1,44 +1,44 @@
 0.21.2 Release Notes
 ====================
 
-Bitcoin Core version 0.21.2 is now available from:
+Cron Coin Core version 0.21.2 is now available from:
 
-  <https://bitcoincore.org/bin/bitcoin-core-0.21.2/>
+  <https://croncoincore.org/bin/croncoin-core-0.21.2/>
 
 This minor release includes various bug fixes and performance
 improvements, as well as updated translations.
 
 Please report bugs using the issue tracker at GitHub:
 
-  <https://github.com/bitcoin/bitcoin/issues>
+  <https://github.com/croncoin/croncoin/issues>
 
 To receive security and update notifications, please subscribe to:
 
-  <https://bitcoincore.org/en/list/announcements/join/>
+  <https://croncoincore.org/en/list/announcements/join/>
 
 How to Upgrade
 ==============
 
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
-installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
-or `bitcoind`/`bitcoin-qt` (on Linux).
+installer (on Windows) or just copy over `/Applications/CronCoin-Qt` (on Mac)
+or `croncoind`/`croncoin-qt` (on Linux).
 
-Upgrading directly from a version of Bitcoin Core that has reached its EOL is
+Upgrading directly from a version of Cron Coin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
-wallet versions of Bitcoin Core are generally supported.
+wallet versions of Cron Coin Core are generally supported.
 
 Compatibility
 ==============
 
-Bitcoin Core is supported and extensively tested on operating systems
-using the Linux kernel, macOS 10.12+, and Windows 7 and newer.  Bitcoin
+Cron Coin Core is supported and extensively tested on operating systems
+using the Linux kernel, macOS 10.12+, and Windows 7 and newer.  CronCoin
 Core should also work on most other Unix-like systems but is not as
-frequently tested on them.  It is not recommended to use Bitcoin Core on
+frequently tested on them.  It is not recommended to use Cron Coin Core on
 unsupported systems.
 
-From Bitcoin Core 0.20.0 onwards, macOS versions earlier than 10.12 are no
-longer supported. Additionally, Bitcoin Core does not yet change appearance
+From Cron Coin Core 0.20.0 onwards, macOS versions earlier than 10.12 are no
+longer supported. Additionally, Cron Coin Core does not yet change appearance
 when macOS "dark mode" is activated.
 
 
@@ -106,4 +106,4 @@ Thanks to everyone who directly contributed to this release:
 
 
 As well as to everyone that helped with translations on
-[Transifex](https://www.transifex.com/bitcoin/bitcoin/).
+[Transifex](https://www.transifex.com/croncoin/croncoin/).

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+#
+#  croncoind The croncoin core server.
+#
+#
+# chkconfig: 345 80 20
+# description: croncoind
+# processname: croncoind
+#
+
+# Source function library.
+. /etc/init.d/functions
+
+# you can override defaults in /etc/sysconfig/croncoind, see below
+if [ -f /etc/sysconfig/croncoind ]; then
+        . /etc/sysconfig/croncoind
+fi
+
+RETVAL=0
+
+prog=croncoind
+# you can override the lockfile via CRONCOIND_LOCKFILE in /etc/sysconfig/croncoind
+lockfile=${CRONCOIND_LOCKFILE-/var/lock/subsys/croncoind}
+
+# croncoind defaults to /usr/bin/croncoind, override with CRONCOIND_BIN
+croncoind=${CRONCOIND_BIN-/usr/bin/croncoind}
+
+# croncoind opts default to -disablewallet, override with CRONCOIND_OPTS
+croncoind_opts=${CRONCOIND_OPTS--disablewallet}
+
+start() {
+    echo -n $"Starting $prog: "
+    daemon $DAEMONOPTS $croncoind $croncoind_opts
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && touch $lockfile
+    return $RETVAL
+}
+
+stop() {
+    echo -n $"Stopping $prog: "
+    killproc $prog -t600
+    RETVAL=$?
+    echo
+    [ $RETVAL -eq 0 ] && rm -f $lockfile
+    return $RETVAL
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status $prog
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage: service $prog {start|stop|status|restart}"
+        exit 1
+        ;;
+esac

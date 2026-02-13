@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2009-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -75,11 +75,18 @@ unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nF
         bnNew.SetCompact(pindexLast->nBits);
     }
 
-    bnNew *= nActualTimespan;
-    bnNew /= params.nPowTargetTimespan;
-
-    if (bnNew > bnPowLimit)
+    // Guard against uint256 overflow when multiplying large targets by timespan.
+    // If bnNew > UINT256_MAX / nActualTimespan, the multiplication would overflow;
+    // since the result would exceed powLimit anyway, clamp directly.
+    const arith_uint256 bnUint256Max = UintToArith256(uint256{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"});
+    if (bnNew > bnUint256Max / nActualTimespan) {
         bnNew = bnPowLimit;
+    } else {
+        bnNew *= nActualTimespan;
+        bnNew /= params.nPowTargetTimespan;
+        if (bnNew > bnPowLimit)
+            bnNew = bnPowLimit;
+    }
 
     return bnNew.GetCompact();
 }
@@ -101,8 +108,13 @@ bool PermittedDifficultyTransition(const Consensus::Params& params, int64_t heig
         // Calculate the largest difficulty value possible:
         arith_uint256 largest_difficulty_target;
         largest_difficulty_target.SetCompact(old_nbits);
-        largest_difficulty_target *= largest_timespan;
-        largest_difficulty_target /= params.nPowTargetTimespan;
+        const arith_uint256 bnMax = UintToArith256(uint256{"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"});
+        if (largest_difficulty_target > bnMax / largest_timespan) {
+            largest_difficulty_target = pow_limit;
+        } else {
+            largest_difficulty_target *= largest_timespan;
+            largest_difficulty_target /= params.nPowTargetTimespan;
+        }
 
         if (largest_difficulty_target > pow_limit) {
             largest_difficulty_target = pow_limit;

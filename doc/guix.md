@@ -1,3 +1,3 @@
-# Bootstrappable Bitcoin Core Builds
+# Bootstrappable Cron Coin Core Builds
 
 See [contrib/guix/README.md](../contrib/guix/README.md)

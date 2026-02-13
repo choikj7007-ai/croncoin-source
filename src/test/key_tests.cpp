@@ -1,4 +1,4 @@
-// Copyright (c) 2012-present The Bitcoin Core developers
+// Copyright (c) 2012-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,11 +27,6 @@ static const std::string strSecret1 = "5HxWvvfubhXpYYpS3tJkw6fq9jE9j18THftkZjHHf
 static const std::string strSecret2 = "5KC4ejrDjv152FGwP386VD1i2NYc5KkfSMyv1nGy1VGDxGHqVY3";
 static const std::string strSecret1C = "Kwr371tjA9u2rFSMZjTNun2PXXP3WPZu2afRHTcta6KxEUdm1vEw";
 static const std::string strSecret2C = "L3Hq7a8FEQwJkW1M2GNKDW28546Vp5miewcCzSqUD9kCAXrJdS3g";
-static const std::string addr1 = "1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ";
-static const std::string addr2 = "1F5y5E5FMc5YzdJtB9hLaUe43GDxEKXENJ";
-static const std::string addr1C = "1NoJrossxPBKfCHuJXT4HadJrXRE9Fxiqs";
-static const std::string addr2C = "1CRj2HyM1CXWzHAXLQtiGLyggNT9WQqsDs";
-
 static const std::string strAddressBad = "1HV9Lc3sNHZxwj4Zk6fB38tEmBryq2cBiF";
 
 
@@ -75,6 +70,11 @@ BOOST_AUTO_TEST_CASE(key_test1)
     BOOST_CHECK(!key2C.VerifyPubKey(pubkey2));
     BOOST_CHECK(key2C.VerifyPubKey(pubkey2C));
 
+    // Verify address encode/decode round-trip
+    std::string addr1 = EncodeDestination(PKHash(pubkey1));
+    std::string addr2 = EncodeDestination(PKHash(pubkey2));
+    std::string addr1C = EncodeDestination(PKHash(pubkey1C));
+    std::string addr2C = EncodeDestination(PKHash(pubkey2C));
     BOOST_CHECK(DecodeDestination(addr1)  == CTxDestination(PKHash(pubkey1)));
     BOOST_CHECK(DecodeDestination(addr2)  == CTxDestination(PKHash(pubkey2)));
     BOOST_CHECK(DecodeDestination(addr1C) == CTxDestination(PKHash(pubkey1C)));

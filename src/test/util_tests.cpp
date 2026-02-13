@@ -1,4 +1,4 @@
-// Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2011-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(util_FormatRFC1123DateTime)
 BOOST_AUTO_TEST_CASE(util_FormatMoney)
 {
     BOOST_CHECK_EQUAL(FormatMoney(0), "0.00");
-    BOOST_CHECK_EQUAL(FormatMoney((COIN/10000)*123456789), "12345.6789");
+    BOOST_CHECK_EQUAL(FormatMoney(123456789), "123456.789");
     BOOST_CHECK_EQUAL(FormatMoney(-COIN), "-1.00");
 
     BOOST_CHECK_EQUAL(FormatMoney(COIN*100000000), "100000000.00");
@@ -418,21 +418,17 @@ BOOST_AUTO_TEST_CASE(util_FormatMoney)
     BOOST_CHECK_EQUAL(FormatMoney(COIN/10), "0.10");
     BOOST_CHECK_EQUAL(FormatMoney(COIN/100), "0.01");
     BOOST_CHECK_EQUAL(FormatMoney(COIN/1000), "0.001");
-    BOOST_CHECK_EQUAL(FormatMoney(COIN/10000), "0.0001");
-    BOOST_CHECK_EQUAL(FormatMoney(COIN/100000), "0.00001");
-    BOOST_CHECK_EQUAL(FormatMoney(COIN/1000000), "0.000001");
-    BOOST_CHECK_EQUAL(FormatMoney(COIN/10000000), "0.0000001");
-    BOOST_CHECK_EQUAL(FormatMoney(COIN/100000000), "0.00000001");
 
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max()), "92233720368.54775807");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 1), "92233720368.54775806");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 2), "92233720368.54775805");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 3), "92233720368.54775804");
+    // COIN=1000, so 3 decimal places max
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max()), "9223372036854775.807");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 1), "9223372036854775.806");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 2), "9223372036854775.805");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::max() - 3), "9223372036854775.804");
     // ...
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 3), "-92233720368.54775805");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 2), "-92233720368.54775806");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 1), "-92233720368.54775807");
-    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min()), "-92233720368.54775808");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 3), "-9223372036854775.805");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 2), "-9223372036854775.806");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min() + 1), "-9223372036854775.807");
+    BOOST_CHECK_EQUAL(FormatMoney(std::numeric_limits<CAmount>::min()), "-9223372036854775.808");
 }
 
 BOOST_AUTO_TEST_CASE(util_ParseMoney)
@@ -441,10 +437,10 @@ BOOST_AUTO_TEST_CASE(util_ParseMoney)
     BOOST_CHECK_EQUAL(ParseMoney(".").value(), 0);
     BOOST_CHECK_EQUAL(ParseMoney("0.").value(), 0);
     BOOST_CHECK_EQUAL(ParseMoney(".0").value(), 0);
-    BOOST_CHECK_EQUAL(ParseMoney(".6789").value(), 6789'0000);
+    BOOST_CHECK_EQUAL(ParseMoney(".678").value(), 678);
     BOOST_CHECK_EQUAL(ParseMoney("12345.").value(), COIN * 12345);
 
-    BOOST_CHECK_EQUAL(ParseMoney("12345.6789").value(), (COIN/10000)*123456789);
+    BOOST_CHECK_EQUAL(ParseMoney("12345.678").value(), 12345678);
 
     BOOST_CHECK_EQUAL(ParseMoney("10000000.00").value(), COIN*10000000);
     BOOST_CHECK_EQUAL(ParseMoney("1000000.00").value(), COIN*1000000);
@@ -461,18 +457,15 @@ BOOST_AUTO_TEST_CASE(util_ParseMoney)
     BOOST_CHECK_EQUAL(ParseMoney("0.1").value(), COIN/10);
     BOOST_CHECK_EQUAL(ParseMoney("0.01").value(), COIN/100);
     BOOST_CHECK_EQUAL(ParseMoney("0.001").value(), COIN/1000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.0001").value(), COIN/10000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.00001").value(), COIN/100000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.000001").value(), COIN/1000000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.0000001").value(), COIN/10000000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.00000001").value(), COIN/100000000);
-    BOOST_CHECK_EQUAL(ParseMoney(" 0.00000001 ").value(), COIN/100000000);
-    BOOST_CHECK_EQUAL(ParseMoney("0.00000001 ").value(), COIN/100000000);
-    BOOST_CHECK_EQUAL(ParseMoney(" 0.00000001").value(), COIN/100000000);
+    BOOST_CHECK_EQUAL(ParseMoney(" 0.001 ").value(), COIN/1000);
+    BOOST_CHECK_EQUAL(ParseMoney("0.001 ").value(), COIN/1000);
+    BOOST_CHECK_EQUAL(ParseMoney(" 0.001").value(), COIN/1000);
+
+    // Parsing amount with too many decimals should fail (COIN=1000, max 3 decimals)
+    BOOST_CHECK(!ParseMoney("0.0001"));
 
     // Parsing amount that cannot be represented should fail
-    BOOST_CHECK(!ParseMoney("100000000.00"));
-    BOOST_CHECK(!ParseMoney("0.000000001"));
+    BOOST_CHECK(!ParseMoney("9223372036854776.000"));
 
     // Parsing empty string should fail
     BOOST_CHECK(!ParseMoney(""));
@@ -493,7 +486,7 @@ BOOST_AUTO_TEST_CASE(util_ParseMoney)
     BOOST_CHECK(!ParseMoney(" +1 .2  "));
 
     // Attempted 63 bit overflow should fail
-    BOOST_CHECK(!ParseMoney("92233720368.54775808"));
+    BOOST_CHECK(!ParseMoney("9223372036854775.808"));
 
     // Parsing negative amounts must fail
     BOOST_CHECK(!ParseMoney("-1"));
@@ -818,7 +811,7 @@ BOOST_AUTO_TEST_CASE(test_LocaleIndependentAtoi)
         BOOST_CHECK_EQUAL(LocaleIndependentAtoi<int64_t>(pair.first), pair.second);
     }
 
-    // Ensure legacy compatibility with previous versions of Bitcoin Core's atoi64
+    // Ensure legacy compatibility with previous versions of CronCoin Core's atoi64
     for (const auto& pair : atoi64_test_pairs) {
         BOOST_CHECK_EQUAL(LocaleIndependentAtoi<int64_t>(pair.first), atoi64_legacy(pair.first));
     }
@@ -1171,7 +1164,7 @@ BOOST_AUTO_TEST_CASE(test_ToUpper)
 BOOST_AUTO_TEST_CASE(test_Capitalize)
 {
     BOOST_CHECK_EQUAL(Capitalize(""), "");
-    BOOST_CHECK_EQUAL(Capitalize("bitcoin"), "Bitcoin");
+    BOOST_CHECK_EQUAL(Capitalize("croncoin"), "CronCoin");
     BOOST_CHECK_EQUAL(Capitalize("\x00\xfe\xff"), "\x00\xfe\xff");
 }
 
@@ -1548,42 +1541,42 @@ BOOST_AUTO_TEST_CASE(message_verify)
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "3B5fQsEXEaV8v6U3ejYc8XaKXAkyQj2MjV",
+            "MHHoikeVBhLZibjwkcXwxApiqsMRUeS9KH",
             "signature should be irrelevant",
             "message too"),
         MessageVerificationResult::ERR_ADDRESS_NO_KEY);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "1KqbBpLy5FARmTPD4VZnDDpYjkUvkr82Pm",
+            "CbJUkrh2xJ8xfbHdkEthnjSaMshLgPiZdp",
             "invalid signature, not in base64 encoding",
             "message should be irrelevant"),
         MessageVerificationResult::ERR_MALFORMED_SIGNATURE);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "1KqbBpLy5FARmTPD4VZnDDpYjkUvkr82Pm",
+            "CbJUkrh2xJ8xfbHdkEthnjSaMshLgPiZdp",
             "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
             "message should be irrelevant"),
         MessageVerificationResult::ERR_PUBKEY_NOT_RECOVERED);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "15CRxFdyRpGZLW9w8HnHvVduizdL5jKNbs",
+            "CLfKXHz3JsF6Ee4Mp37DW1FwM7qk1SaeC6",
             "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=",
             "I never signed this"),
         MessageVerificationResult::ERR_NOT_SIGNED);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "15CRxFdyRpGZLW9w8HnHvVduizdL5jKNbs",
+            "CLfKXHz3JsF6Ee4Mp37DW1FwM7qk1SaeC6",
             "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=",
             "Trust no one"),
         MessageVerificationResult::OK);
 
     BOOST_CHECK_EQUAL(
         MessageVerify(
-            "11canuhp9X2NocwCq7xNrQYTmUgZAnLK3",
+            "CGUW9qFmhCVZGwXMtaSsxN2a5th6XaH9TL",
             "IIcaIENoYW5jZWxsb3Igb24gYnJpbmsgb2Ygc2Vjb25kIGJhaWxvdXQgZm9yIGJhbmtzIAaHRtbCeDZINyavx14=",
             "Trust me"),
         MessageVerificationResult::OK);
@@ -1704,7 +1697,7 @@ BOOST_AUTO_TEST_CASE(util_WriteBinaryFile)
 {
     fs::path tmpfolder = m_args.GetDataDirBase();
     fs::path tmpfile = tmpfolder / "write_binary.dat";
-    std::string expected_text = "bitcoin";
+    std::string expected_text = "croncoin";
     auto valid = WriteBinaryFile(tmpfile, expected_text);
     std::string actual_text;
     std::ifstream file{tmpfile.std_path()};

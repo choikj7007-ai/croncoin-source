@@ -1,10 +1,10 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2009-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_SCRIPT_SIGNINGPROVIDER_H
-#define BITCOIN_SCRIPT_SIGNINGPROVIDER_H
+#ifndef CRONCOIN_SCRIPT_SIGNINGPROVIDER_H
+#define CRONCOIN_SCRIPT_SIGNINGPROVIDER_H
 
 #include <addresstype.h>
 #include <attributes.h>
@@ -337,4 +337,4 @@ public:
     bool GetTaprootBuilder(const XOnlyPubKey& output_key, TaprootBuilder& builder) const override;
 };
 
-#endif // BITCOIN_SCRIPT_SIGNINGPROVIDER_H
+#endif // CRONCOIN_SCRIPT_SIGNINGPROVIDER_H

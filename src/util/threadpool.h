@@ -1,9 +1,9 @@
-// Copyright (c) The Bitcoin Core developers
+// Copyright (c) The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_THREADPOOL_H
-#define BITCOIN_UTIL_THREADPOOL_H
+#ifndef CRONCOIN_UTIL_THREADPOOL_H
+#define CRONCOIN_UTIL_THREADPOOL_H
 
 #include <sync.h>
 #include <tinyformat.h>
@@ -208,4 +208,4 @@ public:
     }
 };
 
-#endif // BITCOIN_UTIL_THREADPOOL_H
+#endif // CRONCOIN_UTIL_THREADPOOL_H

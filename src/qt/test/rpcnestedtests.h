@@ -1,9 +1,9 @@
-// Copyright (c) 2016-present The Bitcoin Core developers
+// Copyright (c) 2016-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_TEST_RPCNESTEDTESTS_H
-#define BITCOIN_QT_TEST_RPCNESTEDTESTS_H
+#ifndef CRONCOIN_QT_TEST_RPCNESTEDTESTS_H
+#define CRONCOIN_QT_TEST_RPCNESTEDTESTS_H
 
 #include <QObject>
 #include <QTest>
@@ -24,4 +24,4 @@ public:
     void rpcNestedTests();
 };
 
-#endif // BITCOIN_QT_TEST_RPCNESTEDTESTS_H
+#endif // CRONCOIN_QT_TEST_RPCNESTEDTESTS_H

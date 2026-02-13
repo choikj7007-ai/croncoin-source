@@ -1,10 +1,10 @@
-# Copyright (c) 2023-present The Bitcoin Core developers
+# Copyright (c) 2023-present The CronCoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or https://opensource.org/license/mit/.
 
 include(AddWindowsResources)
 
-configure_file(${PROJECT_SOURCE_DIR}/cmake/bitcoin-build-config.h.in bitcoin-build-config.h USE_SOURCE_PERMISSIONS @ONLY)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/croncoin-build-config.h.in croncoin-build-config.h USE_SOURCE_PERMISSIONS @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
 #=============================
@@ -38,19 +38,19 @@ if(NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
 endif()
 
 add_custom_target(generate_build_info
-  BYPRODUCTS ${PROJECT_BINARY_DIR}/src/bitcoin-build-info.h
-  COMMAND ${CMAKE_COMMAND} -DBUILD_INFO_HEADER_PATH=${PROJECT_BINARY_DIR}/src/bitcoin-build-info.h -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/script/GenerateBuildInfo.cmake
-  COMMENT "Generating bitcoin-build-info.h"
+  BYPRODUCTS ${PROJECT_BINARY_DIR}/src/croncoin-build-info.h
+  COMMAND ${CMAKE_COMMAND} -DBUILD_INFO_HEADER_PATH=${PROJECT_BINARY_DIR}/src/croncoin-build-info.h -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -P ${PROJECT_SOURCE_DIR}/cmake/script/GenerateBuildInfo.cmake
+  COMMENT "Generating croncoin-build-info.h"
   VERBATIM
 )
-add_library(bitcoin_clientversion STATIC
+add_library(croncoin_clientversion STATIC
   clientversion.cpp
 )
-target_link_libraries(bitcoin_clientversion
+target_link_libraries(croncoin_clientversion
   PRIVATE
     core_interface
 )
-add_dependencies(bitcoin_clientversion generate_build_info)
+add_dependencies(croncoin_clientversion generate_build_info)
 
 add_subdirectory(crypto)
 add_subdirectory(util)
@@ -58,7 +58,7 @@ if(ENABLE_IPC)
   add_subdirectory(ipc)
 endif()
 
-add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
+add_library(croncoin_consensus STATIC EXCLUDE_FROM_ALL
   arith_uint256.cpp
   consensus/merkle.cpp
   consensus/tx_check.cpp
@@ -71,10 +71,10 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   script/script_error.cpp
   uint256.cpp
 )
-target_link_libraries(bitcoin_consensus
+target_link_libraries(croncoin_consensus
   PRIVATE
     core_interface
-    bitcoin_crypto
+    croncoin_crypto
     secp256k1
 )
 
@@ -83,8 +83,8 @@ if(WITH_ZMQ)
 endif()
 
 # Home for common functionality shared by different executables and libraries.
-# Similar to `bitcoin_util` library, but higher-level.
-add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
+# Similar to `croncoin_util` library, but higher-level.
+add_library(croncoin_common STATIC EXCLUDE_FROM_ALL
   addresstype.cpp
   base58.cpp
   bech32.cpp
@@ -136,11 +136,11 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   script/signingprovider.cpp
   script/solver.cpp
 )
-target_link_libraries(bitcoin_common
+target_link_libraries(croncoin_common
   PRIVATE
     core_interface
-    bitcoin_consensus
-    bitcoin_util
+    croncoin_consensus
+    croncoin_util
     univalue
     secp256k1
     Boost::headers
@@ -154,27 +154,27 @@ if(ENABLE_WALLET)
   add_subdirectory(wallet)
 
   if(BUILD_WALLET_TOOL)
-    add_executable(bitcoin-wallet
-      bitcoin-wallet.cpp
-      init/bitcoin-wallet.cpp
+    add_executable(croncoin-wallet
+      croncoin-wallet.cpp
+      init/croncoin-wallet.cpp
       wallet/wallettool.cpp
     )
-    add_windows_resources(bitcoin-wallet bitcoin-wallet-res.rc)
-    add_windows_application_manifest(bitcoin-wallet)
-    target_link_libraries(bitcoin-wallet
+    add_windows_resources(croncoin-wallet croncoin-wallet-res.rc)
+    add_windows_application_manifest(croncoin-wallet)
+    target_link_libraries(croncoin-wallet
       core_interface
-      bitcoin_wallet
-      bitcoin_common
-      bitcoin_util
+      croncoin_wallet
+      croncoin_common
+      croncoin_util
       Boost::headers
     )
-    install_binary_component(bitcoin-wallet HAS_MANPAGE)
+    install_binary_component(croncoin-wallet HAS_MANPAGE)
   endif()
 endif()
 
 
-# P2P and RPC server functionality used by `bitcoind` and `bitcoin-qt` executables.
-add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
+# P2P and RPC server functionality used by `croncoind` and `croncoin-qt` executables.
+add_library(croncoin_node STATIC EXCLUDE_FROM_ALL
   addrdb.cpp
   addrman.cpp
   banman.cpp
@@ -268,15 +268,15 @@ add_library(bitcoin_node STATIC EXCLUDE_FROM_ALL
   validation.cpp
   validationinterface.cpp
   versionbits.cpp
-  $<$<TARGET_EXISTS:bitcoin_wallet>:wallet/init.cpp>
-  $<$<NOT:$<TARGET_EXISTS:bitcoin_wallet>>:dummywallet.cpp>
+  $<$<TARGET_EXISTS:croncoin_wallet>:wallet/init.cpp>
+  $<$<NOT:$<TARGET_EXISTS:croncoin_wallet>>:dummywallet.cpp>
 )
-target_link_libraries(bitcoin_node
+target_link_libraries(croncoin_node
   PRIVATE
     core_interface
-    bitcoin_common
-    bitcoin_util
-    $<TARGET_NAME_IF_EXISTS:bitcoin_zmq>
+    croncoin_common
+    croncoin_util
+    $<TARGET_NAME_IF_EXISTS:croncoin_zmq>
     leveldb
     minisketch
     univalue
@@ -287,97 +287,97 @@ target_link_libraries(bitcoin_node
     $<TARGET_NAME_IF_EXISTS:USDT::headers>
 )
 
-# Bitcoin wrapper executable that can call other executables.
-if(BUILD_BITCOIN_BIN)
-  add_executable(bitcoin bitcoin.cpp)
-  add_windows_resources(bitcoin bitcoin-res.rc)
-  add_windows_application_manifest(bitcoin)
-  target_link_libraries(bitcoin core_interface bitcoin_common bitcoin_util)
-  install_binary_component(bitcoin HAS_MANPAGE)
+# Cron Coin wrapper executable that can call other executables.
+if(BUILD_CRONCOIN_BIN)
+  add_executable(croncoin croncoin.cpp)
+  add_windows_resources(croncoin croncoin-res.rc)
+  add_windows_application_manifest(croncoin)
+  target_link_libraries(croncoin core_interface croncoin_common croncoin_util)
+  install_binary_component(croncoin HAS_MANPAGE)
 endif()
 
-# Bitcoin Core bitcoind.
+# Cron Coin Core croncoind.
 if(BUILD_DAEMON)
-  add_executable(bitcoind
-    bitcoind.cpp
-    init/bitcoind.cpp
+  add_executable(croncoind
+    croncoind.cpp
+    init/croncoind.cpp
   )
-  add_windows_resources(bitcoind bitcoind-res.rc)
-  add_windows_application_manifest(bitcoind)
-  target_link_libraries(bitcoind
+  add_windows_resources(croncoind croncoind-res.rc)
+  add_windows_application_manifest(croncoind)
+  target_link_libraries(croncoind
     core_interface
-    bitcoin_node
-    $<TARGET_NAME_IF_EXISTS:bitcoin_wallet>
+    croncoin_node
+    $<TARGET_NAME_IF_EXISTS:croncoin_wallet>
   )
-  install_binary_component(bitcoind HAS_MANPAGE)
+  install_binary_component(croncoind HAS_MANPAGE)
 endif()
 if(ENABLE_IPC AND BUILD_DAEMON)
-  add_executable(bitcoin-node
-    bitcoind.cpp
-    init/bitcoin-node.cpp
+  add_executable(croncoin-node
+    croncoind.cpp
+    init/croncoin-node.cpp
   )
-  target_link_libraries(bitcoin-node
+  target_link_libraries(croncoin-node
     core_interface
-    bitcoin_node
-    bitcoin_ipc
-    $<TARGET_NAME_IF_EXISTS:bitcoin_wallet>
+    croncoin_node
+    croncoin_ipc
+    $<TARGET_NAME_IF_EXISTS:croncoin_wallet>
   )
-  install_binary_component(bitcoin-node INTERNAL)
+  install_binary_component(croncoin-node INTERNAL)
 endif()
 
 
-add_library(bitcoin_cli STATIC EXCLUDE_FROM_ALL
+add_library(croncoin_cli STATIC EXCLUDE_FROM_ALL
   compat/stdin.cpp
   rpc/client.cpp
 )
-target_link_libraries(bitcoin_cli
+target_link_libraries(croncoin_cli
   PUBLIC
     core_interface
     univalue
 )
 
 
-# Bitcoin Core RPC client
+# Cron Coin Core RPC client
 if(BUILD_CLI)
-  add_executable(bitcoin-cli bitcoin-cli.cpp)
-  add_windows_resources(bitcoin-cli bitcoin-cli-res.rc)
-  add_windows_application_manifest(bitcoin-cli)
-  target_link_libraries(bitcoin-cli
+  add_executable(croncoin-cli croncoin-cli.cpp)
+  add_windows_resources(croncoin-cli croncoin-cli-res.rc)
+  add_windows_application_manifest(croncoin-cli)
+  target_link_libraries(croncoin-cli
     core_interface
-    bitcoin_cli
-    bitcoin_common
-    bitcoin_util
+    croncoin_cli
+    croncoin_common
+    croncoin_util
     libevent::core
     libevent::extra
   )
-  install_binary_component(bitcoin-cli HAS_MANPAGE)
+  install_binary_component(croncoin-cli HAS_MANPAGE)
 endif()
 
 
 if(BUILD_TX)
-  add_executable(bitcoin-tx bitcoin-tx.cpp)
-  add_windows_resources(bitcoin-tx bitcoin-tx-res.rc)
-  add_windows_application_manifest(bitcoin-tx)
-  target_link_libraries(bitcoin-tx
+  add_executable(croncoin-tx croncoin-tx.cpp)
+  add_windows_resources(croncoin-tx croncoin-tx-res.rc)
+  add_windows_application_manifest(croncoin-tx)
+  target_link_libraries(croncoin-tx
     core_interface
-    bitcoin_common
-    bitcoin_util
+    croncoin_common
+    croncoin_util
     univalue
   )
-  install_binary_component(bitcoin-tx HAS_MANPAGE)
+  install_binary_component(croncoin-tx HAS_MANPAGE)
 endif()
 
 
 if(BUILD_UTIL)
-  add_executable(bitcoin-util bitcoin-util.cpp)
-  add_windows_resources(bitcoin-util bitcoin-util-res.rc)
-  add_windows_application_manifest(bitcoin-util)
-  target_link_libraries(bitcoin-util
+  add_executable(croncoin-util croncoin-util.cpp)
+  add_windows_resources(croncoin-util croncoin-util-res.rc)
+  add_windows_application_manifest(croncoin-util)
+  target_link_libraries(croncoin-util
     core_interface
-    bitcoin_common
-    bitcoin_util
+    croncoin_common
+    croncoin_util
   )
-  install_binary_component(bitcoin-util HAS_MANPAGE)
+  install_binary_component(croncoin-util HAS_MANPAGE)
 endif()
 
 
@@ -392,16 +392,16 @@ if(BUILD_KERNEL_LIB)
     add_subdirectory(test/kernel)
   endif()
   if(BUILD_UTIL_CHAINSTATE)
-    add_executable(bitcoin-chainstate
-      bitcoin-chainstate.cpp
+    add_executable(croncoin-chainstate
+      croncoin-chainstate.cpp
     )
-    add_windows_application_manifest(bitcoin-chainstate)
-    target_link_libraries(bitcoin-chainstate
+    add_windows_application_manifest(croncoin-chainstate)
+    target_link_libraries(croncoin-chainstate
       PRIVATE
         core_interface
-        bitcoinkernel
+        croncoink
     )
-    install_binary_component(bitcoin-chainstate INTERNAL)
+    install_binary_component(croncoin-chainstate INTERNAL)
   endif()
 endif()
 

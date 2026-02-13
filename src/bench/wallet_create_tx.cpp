@@ -1,4 +1,4 @@
-// Copyright (c) 2022-present The Bitcoin Core developers
+// Copyright (c) 2022-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or https://www.opensource.org/licenses/mit-license.php.
 
@@ -158,7 +158,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     }
 
     // If automatic coin selection is enabled, add the value of another UTXO to the target
-    if (coin_control.m_allow_other_inputs) target += 50 * COIN;
+    if (coin_control.m_allow_other_inputs) target += 500000 * COIN;
     std::vector<wallet::CRecipient> recipients = {{dest, target, true}};
 
     bench.run([&] {

@@ -1,9 +1,9 @@
-// Copyright (c) 2011-present The Bitcoin Core developers
+// Copyright (c) 2011-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_WALLETMODELTRANSACTION_H
-#define BITCOIN_QT_WALLETMODELTRANSACTION_H
+#ifndef CRONCOIN_QT_WALLETMODELTRANSACTION_H
+#define CRONCOIN_QT_WALLETMODELTRANSACTION_H
 
 #include <primitives/transaction.h>
 #include <qt/sendcoinsrecipient.h>
@@ -44,4 +44,4 @@ private:
     CAmount fee{0};
 };
 
-#endif // BITCOIN_QT_WALLETMODELTRANSACTION_H
+#endif // CRONCOIN_QT_WALLETMODELTRANSACTION_H

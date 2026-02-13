@@ -1,4 +1,4 @@
-// Copyright (c) 2009-present The Bitcoin Core developers
+// Copyright (c) 2009-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -292,7 +292,7 @@ UniValue ValueFromAmount(const CAmount amount)
         remainder = -remainder;
     }
     return UniValue(UniValue::VNUM,
-            strprintf("%s%d.%08d", amount < 0 ? "-" : "", quotient, remainder));
+            strprintf("%s%d.%03d", amount < 0 ? "-" : "", quotient, remainder));
 }
 
 std::string FormatScript(const CScript& script)

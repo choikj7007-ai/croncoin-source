@@ -1,9 +1,9 @@
-// Copyright (c) 2016-present The Bitcoin Core developers
+// Copyright (c) 2016-present The CronCoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTIL_THREADINTERRUPT_H
-#define BITCOIN_UTIL_THREADINTERRUPT_H
+#ifndef CRONCOIN_UTIL_THREADINTERRUPT_H
+#define CRONCOIN_UTIL_THREADINTERRUPT_H
 
 #include <sync.h>
 #include <threadsafety.h>
@@ -55,4 +55,4 @@ private:
     std::atomic<bool> flag;
 };
 
-#endif // BITCOIN_UTIL_THREADINTERRUPT_H
+#endif // CRONCOIN_UTIL_THREADINTERRUPT_H
