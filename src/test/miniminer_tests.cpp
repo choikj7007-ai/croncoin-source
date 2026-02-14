@@ -15,9 +15,9 @@
 
 BOOST_FIXTURE_TEST_SUITE(miniminer_tests, TestingSetup)
 
-const CAmount low_fee{CENT/2000}; // 500 ṩ
-const CAmount med_fee{CENT/200}; // 5000 ṩ
-const CAmount high_fee{CENT/10}; // 100_000 ṩ
+const CAmount low_fee{COIN/2}; // 500 ṩ
+const CAmount med_fee{5*COIN}; // 5000 ṩ
+const CAmount high_fee{100*COIN}; // 100_000 ṩ
 
 
 static inline CTransactionRef make_tx(const std::vector<COutPoint>& inputs, size_t num_outputs)
@@ -129,7 +129,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_1p1c, TestChain100Setup)
     TryAddToMempool(pool, entry.Fee(low_fee).FromTx(tx4));
     const auto tx5 = make_tx({COutPoint{tx4->GetHash(), 0}}, /*num_outputs=*/1);
     TryAddToMempool(pool, entry.Fee(low_fee).FromTx(tx5));
-    const CAmount tx5_delta{CENT/100};
+    const CAmount tx5_delta{10*COIN};
     // Make tx5's modified fee much higher than its base fee. This should cause it to pass
     // the fee-related checks despite being low-feerate.
     pool.PrioritiseTransaction(tx5->GetHash(), tx5_delta);
@@ -187,7 +187,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_1p1c, TestChain100Setup)
     const std::vector<CFeeRate> various_normal_feerates({CFeeRate(0), CFeeRate(500), CFeeRate(999),
                                                          CFeeRate(1000), CFeeRate(2000), CFeeRate(2500),
                                                          CFeeRate(3333), CFeeRate(7800), CFeeRate(11199),
-                                                         CFeeRate(23330), CFeeRate(50000), CFeeRate(5*CENT)});
+                                                         CFeeRate(23330), CFeeRate(50000), CFeeRate(5000)});
 
     // All nonexistent entries have a bumpfee of zero, regardless of feerate
     std::vector<COutPoint> nonexistent_outpoints({ COutPoint{Txid::FromUint256(GetRandHash()), 0}, COutPoint{Txid::FromUint256(GetRandHash()), 3} });
@@ -395,9 +395,9 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
  *  -> tx2_FR = high / tx2_vsize
  *  -> tx3_FR = high / tx3_vsize
  *  -> tx3_ASFR = (low+med+high+high) / (tx0_vsize + tx1_vsize + tx2_vsize + tx3_vsize)
- *  -> tx4_FR = high / tx4_vsize
- *  -> tx6_ASFR = (high+low+med) / (tx4_vsize + tx5_vsize + tx6_vsize)
- *  -> tx7_ASFR = (high+low+high) / (tx4_vsize + tx5_vsize + tx7_vsize) */
+ *  -> tx4_FR = (high+1) / tx4_vsize
+ *  -> tx6_ASFR = (high+1+low+med) / (tx4_vsize + tx5_vsize + tx6_vsize)
+ *  -> tx7_ASFR = (high+1+low+high) / (tx4_vsize + tx5_vsize + tx7_vsize) */
 
     CTxMemPool& pool = *Assert(m_node.mempool);
     LOCK2(::cs_main, pool.cs);
@@ -415,7 +415,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
 
     // Create 1 grandparent and 1 parent, then 2 children.
     const auto tx4 = make_tx({COutPoint{m_coinbase_txns[3]->GetHash(), 0}}, /*num_outputs=*/2);
-    TryAddToMempool(pool, entry.Fee(high_fee).FromTx(tx4));
+    TryAddToMempool(pool, entry.Fee(high_fee + 1).FromTx(tx4));
     const auto tx5 = make_tx({COutPoint{tx4->GetHash(), 0}}, /*num_outputs=*/3);
     TryAddToMempool(pool, entry.Fee(low_fee).FromTx(tx5));
     const auto tx6 = make_tx({COutPoint{tx5->GetHash(), 0}}, /*num_outputs=*/2);
@@ -453,13 +453,13 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
     auto [dummy_count, ancestor_vsize, mod_fees] = pool.CalculateAncestorData(tx3_entry);
     BOOST_CHECK(tx3_anc_feerate == CFeeRate(mod_fees, ancestor_vsize));
 
-    const auto tx4_feerate = CFeeRate(high_fee, tx_vsizes[4]);
-    const auto tx6_anc_feerate = CFeeRate(high_fee + low_fee + med_fee, tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6]);
+    const auto tx4_feerate = CFeeRate(high_fee + 1, tx_vsizes[4]);
+    const auto tx6_anc_feerate = CFeeRate(high_fee + 1 + low_fee + med_fee, tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6]);
     const auto& tx6_entry{*Assert(pool.GetEntry(tx6->GetHash()))};
 
     std::tie(std::ignore, ancestor_vsize, mod_fees) = pool.CalculateAncestorData(tx6_entry);
     BOOST_CHECK(tx6_anc_feerate == CFeeRate(mod_fees, ancestor_vsize));
-    const auto tx7_anc_feerate = CFeeRate(high_fee + low_fee + high_fee, tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[7]);
+    const auto tx7_anc_feerate = CFeeRate(high_fee + 1 + low_fee + high_fee, tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[7]);
     const auto& tx7_entry{*Assert(pool.GetEntry(tx7->GetHash()))};
 
     std::tie(std::ignore, ancestor_vsize, mod_fees) = pool.CalculateAncestorData(tx7_entry);
@@ -470,7 +470,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
     // Extremely high feerate: everybody's bumpfee is from their full ancestor set.
     {
         node::MiniMiner mini_miner(pool, all_unspent_outpoints);
-        const CFeeRate very_high_feerate(COIN);
+        const CFeeRate very_high_feerate(2000 * COIN);
         BOOST_CHECK(tx3_anc_feerate < very_high_feerate);
         BOOST_CHECK(mini_miner.IsReadyToCalculate());
         auto bump_fees = mini_miner.CalculateBumpFees(very_high_feerate);
@@ -487,11 +487,11 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
         const auto tx6_bumpfee = bump_fees.find(COutPoint{tx6->GetHash(), 0});
         BOOST_CHECK(tx6_bumpfee != bump_fees.end());
         BOOST_CHECK_EQUAL(tx6_bumpfee->second,
-            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6]) - (high_fee + low_fee + med_fee));
+            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6]) - (high_fee + 1 + low_fee + med_fee));
         const auto tx7_bumpfee = bump_fees.find(COutPoint{tx7->GetHash(), 0});
         BOOST_CHECK(tx7_bumpfee != bump_fees.end());
         BOOST_CHECK_EQUAL(tx7_bumpfee->second,
-            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[7]) - (high_fee + low_fee + high_fee));
+            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[7]) - (high_fee + 1 + low_fee + high_fee));
         // Total fees: if spending multiple outputs from tx3 don't double-count fees.
         node::MiniMiner mini_miner_total_tx3(pool, {COutPoint{tx3->GetHash(), 0}, COutPoint{tx3->GetHash(), 1}});
         BOOST_CHECK(mini_miner_total_tx3.IsReadyToCalculate());
@@ -507,7 +507,7 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
         BOOST_CHECK(!mini_miner_tx6_tx7.IsReadyToCalculate());
         BOOST_CHECK(tx6_tx7_bumpfee.has_value());
         BOOST_CHECK_EQUAL(tx6_tx7_bumpfee.value(),
-            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6] + tx_vsizes[7]) - (high_fee + low_fee + med_fee + high_fee));
+            very_high_feerate.GetFee(tx_vsizes[4] + tx_vsizes[5] + tx_vsizes[6] + tx_vsizes[7]) - (high_fee + 1 + low_fee + med_fee + high_fee));
     }
     // Feerate just below tx4: tx6 and tx7 have different bump fees.
     {
@@ -530,7 +530,8 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
         const auto tx6_tx7_bumpfee = mini_miner_tx6_tx7.CalculateTotalBumpFees(just_below_tx4);
         BOOST_CHECK(!mini_miner_tx6_tx7.IsReadyToCalculate());
         BOOST_CHECK(tx6_tx7_bumpfee.has_value());
-        BOOST_CHECK_EQUAL(tx6_tx7_bumpfee.value(), just_below_tx4.GetFee(tx_vsizes[5] + tx_vsizes[6]) - (low_fee + med_fee));
+        BOOST_CHECK_EQUAL(tx6_tx7_bumpfee.value(),
+            just_below_tx4.GetFee(tx_vsizes[5] + tx_vsizes[6] + tx_vsizes[7]) - (low_fee + med_fee + high_fee));
     }
     // Feerate between tx6 and tx7's ancestor feerates: don't need to bump tx5 because tx7 already does.
     {
@@ -555,10 +556,10 @@ BOOST_FIXTURE_TEST_CASE(miniminer_overlap, TestChain100Setup)
     miniminer_info.emplace_back(tx1,               tx_vsizes[1],                                        tx_vsizes[1],              med_fee,                    med_fee);
     miniminer_info.emplace_back(tx2,               tx_vsizes[2],                                        tx_vsizes[2],             high_fee,                   high_fee);
     miniminer_info.emplace_back(tx3,               tx_vsizes[3], tx_vsizes[0]+tx_vsizes[1]+tx_vsizes[2]+tx_vsizes[3],             high_fee, low_fee+med_fee+2*high_fee);
-    miniminer_info.emplace_back(tx4,               tx_vsizes[4],                                        tx_vsizes[4],             high_fee,                   high_fee);
-    miniminer_info.emplace_back(tx5,               tx_vsizes[5],                           tx_vsizes[4]+tx_vsizes[5],              low_fee,         low_fee + high_fee);
-    miniminer_info.emplace_back(tx6,               tx_vsizes[6],              tx_vsizes[4]+tx_vsizes[5]+tx_vsizes[6],              med_fee,   high_fee+low_fee+med_fee);
-    miniminer_info.emplace_back(tx7,               tx_vsizes[7],              tx_vsizes[4]+tx_vsizes[5]+tx_vsizes[7],             high_fee,  high_fee+low_fee+high_fee);
+    miniminer_info.emplace_back(tx4,               tx_vsizes[4],                                        tx_vsizes[4],         high_fee + 1,               high_fee + 1);
+    miniminer_info.emplace_back(tx5,               tx_vsizes[5],                           tx_vsizes[4]+tx_vsizes[5],              low_fee,     low_fee + high_fee + 1);
+    miniminer_info.emplace_back(tx6,               tx_vsizes[6],              tx_vsizes[4]+tx_vsizes[5]+tx_vsizes[6],              med_fee, high_fee+1+low_fee+med_fee);
+    miniminer_info.emplace_back(tx7,               tx_vsizes[7],              tx_vsizes[4]+tx_vsizes[5]+tx_vsizes[7],             high_fee, high_fee+1+low_fee+high_fee);
 
     std::map<Txid, std::set<Txid>> descendant_caches;
     descendant_caches.emplace(tx0->GetHash(), std::set<Txid>{tx0->GetHash(), tx3->GetHash()});
@@ -608,7 +609,7 @@ BOOST_FIXTURE_TEST_CASE(calculate_cluster, TestChain100Setup)
         lasttx = m_coinbase_txns[cluster_count];
         for (auto i{0}; i < 50; ++i) {
             const auto tx = make_tx({COutPoint{lasttx->GetHash(), 0}}, /*num_outputs=*/1);
-            TryAddToMempool(pool, entry.Fee(CENT).FromTx(tx));
+            TryAddToMempool(pool, entry.Fee(1000).FromTx(tx));
             chain_txids.push_back(tx->GetHash());
             lasttx = tx;
         }
@@ -622,7 +623,7 @@ BOOST_FIXTURE_TEST_CASE(calculate_cluster, TestChain100Setup)
 
     // GatherClusters stops at 500 transactions.
     const auto tx_501 = make_tx({COutPoint{lasttx->GetHash(), 0}}, /*num_outputs=*/1);
-    TryAddToMempool(pool, entry.Fee(CENT).FromTx(tx_501));
+    TryAddToMempool(pool, entry.Fee(1000).FromTx(tx_501));
     const auto cluster_501 = pool.GatherClusters(last_txs);
     BOOST_CHECK_EQUAL(cluster_501.size(), 0);
 
@@ -635,12 +636,12 @@ BOOST_FIXTURE_TEST_CASE(calculate_cluster, TestChain100Setup)
     std::vector<Txid> zigzag_txids;
     for (auto p{0}; p < 32; ++p) {
         const auto txp = make_tx({COutPoint{Txid::FromUint256(GetRandHash()), 0}}, /*num_outputs=*/2);
-        TryAddToMempool(pool, entry.Fee(CENT).FromTx(txp));
+        TryAddToMempool(pool, entry.Fee(1000).FromTx(txp));
         zigzag_txids.push_back(txp->GetHash());
     }
     for (auto c{0}; c < 31; ++c) {
         const auto txc = make_tx({COutPoint{zigzag_txids[c], 1}, COutPoint{zigzag_txids[c+1], 0}}, /*num_outputs=*/1);
-        TryAddToMempool(pool, entry.Fee(CENT).FromTx(txc));
+        TryAddToMempool(pool, entry.Fee(1000).FromTx(txc));
         zigzag_txids.push_back(txc->GetHash());
     }
     const auto vec_iters_zigzag = pool.GetIterVec(zigzag_txids);

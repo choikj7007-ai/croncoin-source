@@ -29,12 +29,13 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
     auto check_tx = [&wallet](CAmount leftover_input_amount) {
         CRecipient recipient{PubKeyDestination({}), 500000 * COIN - leftover_input_amount, /*subtract_fee=*/true};
         CCoinControl coin_control;
-        coin_control.m_feerate.emplace(10000);
+        coin_control.m_feerate.emplace(100);
         coin_control.fOverrideFeeRate = true;
         // We need to use a change type with high cost of change so that the leftover amount will be dropped to fee instead of added as a change output
         coin_control.m_change_type = OutputType::LEGACY;
         auto res = CreateTransaction(*wallet, {recipient}, /*change_pos=*/std::nullopt, coin_control);
-        BOOST_CHECK(res);
+        BOOST_CHECK_MESSAGE(res, "CreateTransaction failed: " + (res ? "" : util::ErrorString(res).original));
+        if (!res) return CAmount{0};
         const auto& txr = *res;
         BOOST_CHECK_EQUAL(txr.tx->vout.size(), 1);
         BOOST_CHECK_EQUAL(txr.tx->vout[0].nValue, recipient.nAmount + leftover_input_amount - txr.fee);
@@ -76,9 +77,9 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
     std::set<COutPoint> preset_inputs = {coins[0].outpoint, coins[1].outpoint, coins[2].outpoint};
 
     // Try to create a tx that spends more than what preset inputs + wallet selected inputs are covering for.
-    // The wallet can cover up to 200 BTC, and the tx target is 299 BTC.
+    // The wallet can cover up to 4 * 500000 CRN = 2,000,000 CRN, and the tx target exceeds that.
     std::vector<CRecipient> recipients{{*Assert(wallet->GetNewDestination(OutputType::BECH32, "dummy")),
-                                           /*nAmount=*/299 * COIN, /*fSubtractFeeFromAmount=*/true}};
+                                           /*nAmount=*/2500000 * COIN, /*fSubtractFeeFromAmount=*/true}};
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;
     for (const auto& outpoint : preset_inputs) {

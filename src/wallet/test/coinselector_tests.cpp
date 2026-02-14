@@ -237,8 +237,8 @@ BOOST_AUTO_TEST_CASE(bnb_search_test)
         CoinsResult available_coins;
 
         // pre selected coin should be selected even if disadvantageous
-        coin_selection_params_bnb.m_effective_feerate = CFeeRate(0);
-        coin_selection_params_bnb.m_long_term_feerate = CFeeRate(0);
+        coin_selection_params_bnb.m_effective_feerate = CFeeRate(5000);
+        coin_selection_params_bnb.m_long_term_feerate = CFeeRate(3000);
 
         // Add selectable outputs, increasing their raw amounts by their input fee to make the effective value equal to the raw amount
         CAmount input_fee = coin_selection_params_bnb.m_effective_feerate.GetFee(/*virtual_bytes=*/68); // bech32 input size (default test output type)

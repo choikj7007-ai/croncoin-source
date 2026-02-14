@@ -111,7 +111,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{};
+        consensus.nMinimumChainWork = uint256{1};
         consensus.defaultAssumeValid = uint256{};
 
         /**
@@ -197,7 +197,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{};
+        consensus.nMinimumChainWork = uint256{1};
         consensus.defaultAssumeValid = uint256{};
 
         pchMessageStart[0] = 0xd1;
@@ -279,7 +279,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1512; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nMinimumChainWork = uint256{};
+        consensus.nMinimumChainWork = uint256{1};
         consensus.defaultAssumeValid = uint256{};
 
         pchMessageStart[0] = 0xe1;
@@ -464,7 +464,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 108; // 75%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 144;
 
-        consensus.nMinimumChainWork = uint256{};
+        consensus.nMinimumChainWork = uint256{1};
         consensus.defaultAssumeValid = uint256{};
 
         pchMessageStart[0] = 0xfa;
@@ -514,7 +514,14 @@ public:
         fDefaultConsistencyChecks = true;
         m_is_mockable_chain = true;
 
-        m_assumeutxo_data = {};
+        m_assumeutxo_data = {
+            {
+                .height = 110,
+                .hash_serialized = AssumeutxoHash{uint256{"3a0f7458412ae47c17c8319f249e187729c52aa6aab1d6aa31aaa79c8ec98d4e"}},
+                .m_chain_tx_count = 111,
+                .blockhash = uint256{"0fa6c3b62a57f817302bdf895b69cd37f548786cdf158cdf0afbab4ffebb3e4b"},
+            },
+        };
 
         chainTxData = ChainTxData{
             .nTime = 0,

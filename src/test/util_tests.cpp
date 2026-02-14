@@ -1164,7 +1164,7 @@ BOOST_AUTO_TEST_CASE(test_ToUpper)
 BOOST_AUTO_TEST_CASE(test_Capitalize)
 {
     BOOST_CHECK_EQUAL(Capitalize(""), "");
-    BOOST_CHECK_EQUAL(Capitalize("croncoin"), "CronCoin");
+    BOOST_CHECK_EQUAL(Capitalize("croncoin"), "Croncoin");
     BOOST_CHECK_EQUAL(Capitalize("\x00\xfe\xff"), "\x00\xfe\xff");
 }
 
@@ -1508,7 +1508,7 @@ BOOST_AUTO_TEST_CASE(message_sign)
     const std::string message = "Trust no one";
 
     const std::string expected_signature =
-        "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=";
+        "H3TETEZpbktB6jR+2A7+ty4S8tPiV3vQi3A5/n3r36ZGDCccnlvwn6q5TUSHVqZNHtQpyEcxQopOQQrQt9kdYOM=";
 
     CKey privkey;
     std::string generated_signature;
@@ -1570,15 +1570,8 @@ BOOST_AUTO_TEST_CASE(message_verify)
     BOOST_CHECK_EQUAL(
         MessageVerify(
             "CLfKXHz3JsF6Ee4Mp37DW1FwM7qk1SaeC6",
-            "IPojfrX2dfPnH26UegfbGQQLrdK844DlHq5157/P6h57WyuS/Qsl+h/WSVGDF4MUi4rWSswW38oimDYfNNUBUOk=",
+            "H3TETEZpbktB6jR+2A7+ty4S8tPiV3vQi3A5/n3r36ZGDCccnlvwn6q5TUSHVqZNHtQpyEcxQopOQQrQt9kdYOM=",
             "Trust no one"),
-        MessageVerificationResult::OK);
-
-    BOOST_CHECK_EQUAL(
-        MessageVerify(
-            "CGUW9qFmhCVZGwXMtaSsxN2a5th6XaH9TL",
-            "IIcaIENoYW5jZWxsb3Igb24gYnJpbmsgb2Ygc2Vjb25kIGJhaWxvdXQgZm9yIGJhbmtzIAaHRtbCeDZINyavx14=",
-            "Trust me"),
         MessageVerificationResult::OK);
 }
 

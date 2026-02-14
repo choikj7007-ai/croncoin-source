@@ -128,18 +128,21 @@ BOOST_AUTO_TEST_CASE(signet_parse_tests)
 }
 
 //! Test retrieval of valid assumeutxo values.
-//! Disabled: CronCoin does not have assumeutxo data configured yet.
 BOOST_AUTO_TEST_CASE(test_assumeutxo)
 {
     const auto params = CreateChainParams(*m_node.args, ChainType::REGTEST);
 
-    // No assumeutxo configurations exist yet for CronCoin.
-    std::vector<int> bad_heights{0, 100, 110, 111, 115, 209, 211};
+    // These heights have no assumeutxo data configured.
+    std::vector<int> bad_heights{0, 100, 111, 115, 209, 211};
 
     for (auto empty : bad_heights) {
         const auto out = params->AssumeutxoForHeight(empty);
         BOOST_CHECK(!out);
     }
+
+    // Height 110 has valid assumeutxo data.
+    const auto out110 = params->AssumeutxoForHeight(110);
+    BOOST_CHECK(out110);
 }
 
 BOOST_AUTO_TEST_CASE(block_malleation)
