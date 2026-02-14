@@ -10,9 +10,9 @@ interface, which can be optionally built.
 
 Cron Coin is a cryptocurrency forked from CronCoin Core with the following specifications:
 - Symbol: CRN
-- Smallest unit: cros (1 CRN = 10,000 cros)
-- Maximum supply: 2,100,000,000,000 CRN
-- Block reward: 5,000,000 CRN
+- Smallest unit: cros (1 CRN = 1,000 cros)
+- Maximum supply: 210,000,000,000,000 CRN
+- Block reward: 500,000 CRN
 - Halving interval: 210,000 blocks
 
 Further information about Cron Coin Core is available in the [doc folder](/doc).
