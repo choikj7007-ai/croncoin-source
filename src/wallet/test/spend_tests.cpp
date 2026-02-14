@@ -21,6 +21,10 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
     CreateAndProcessBlock({}, GetScriptForRawPubKey(coinbaseKey.GetPubKey()));
     auto wallet = CreateSyncedWallet(*m_node.chain, WITH_LOCK(Assert(m_node.chainman)->GetMutex(), return m_node.chainman->ActiveChain()), coinbaseKey);
 
+    // Use a high discard rate so that LEGACY change outputs are uneconomical,
+    // ensuring leftover input amounts are dropped to fees rather than change.
+    wallet->m_discard_rate = CFeeRate(10000);
+
     // Check that a subtract-from-recipient transaction slightly less than the
     // coinbase input amount does not create a change output (because it would
     // be uneconomical to add and spend the output), and make sure it pays the
