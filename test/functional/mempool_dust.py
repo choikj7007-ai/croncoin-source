@@ -94,7 +94,8 @@ class DustRelayFeeTest(CronCoinTestFramework):
         assert sweep_txid in mempool_entries
         assert_equal(len(mempool_entries), 2)
 
-        # Wipe extra arg to reset dust relay
+        # Mine txs into a block and reset dust relay
+        self.generate(self.nodes[0], 1)
         self.restart_node(0, extra_args=[])
 
         assert_equal(self.nodes[0].getrawmempool(), [])
@@ -130,7 +131,7 @@ class DustRelayFeeTest(CronCoinTestFramework):
             if dustfee_sat_kvb == DUST_RELAY_TX_FEE:
                 self.log.info(f"Test default dust limit setting ({dustfee_sat_kvb} sat/kvB)...")
             else:
-                dust_parameter = f"-dustrelayfee={dustfee_btc_kvb:.8f}"
+                dust_parameter = f"-dustrelayfee={dustfee_btc_kvb:.3f}"
                 self.log.info(f"Test dust limit setting {dust_parameter} ({dustfee_sat_kvb} sat/kvB)...")
                 self.restart_node(0, extra_args=[dust_parameter, "-permitbaremultisig"])
 

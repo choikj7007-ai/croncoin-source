@@ -56,7 +56,7 @@ from test_framework.util import (
 )
 from test_framework.wallet_util import generate_keypair
 
-DEFAULT_FEE = Decimal("0.0001")
+DEFAULT_FEE = Decimal("0.001")
 
 class MiniWalletMode(Enum):
     """Determines the transaction type the MiniWallet is creating and spending.
@@ -298,7 +298,7 @@ class MiniWallet:
         version=2,
         locktime=0,
         sequence=0,
-        fee_per_output=1000,
+        fee_per_output=1,
         target_vsize=0,
         confirmed_only=False,
     ):

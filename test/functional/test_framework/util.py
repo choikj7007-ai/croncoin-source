@@ -26,7 +26,7 @@ from .descriptors import descsum_create
 from collections.abc import Callable
 from typing import Optional, Union
 
-SATOSHI_PRECISION = Decimal('0.00000001')
+SATOSHI_PRECISION = Decimal('0.001')
 
 logger = logging.getLogger("TestFramework.utils")
 
@@ -360,10 +360,10 @@ def random_bitflip(data):
 
 
 def get_fee(tx_size, feerate_btc_kvb):
-    """Calculate the fee in BTC given a feerate is BTC/kvB. Reflects CFeeRate::GetFee"""
-    feerate_sat_kvb = int(feerate_btc_kvb * Decimal(1e8)) # Fee in sat/kvb as an int to avoid float precision errors
-    target_fee_sat = ceildiv(feerate_sat_kvb * tx_size, 1000) # Round calculated fee up to nearest sat
-    return target_fee_sat / Decimal(1e8) # Return result in  BTC
+    """Calculate the fee in CRN given a feerate in CRN/kvB. Reflects CFeeRate::GetFee"""
+    feerate_sat_kvb = int(feerate_btc_kvb * Decimal(1000)) # Fee in cro/kvB as an int to avoid float precision errors
+    target_fee_sat = ceildiv(feerate_sat_kvb * tx_size, 1000) # Round calculated fee up to nearest cro
+    return target_fee_sat / Decimal(1000) # Return result in CRN
 
 
 def satoshi_round(amount: Union[int, float, str], *, rounding: str) -> Decimal:
