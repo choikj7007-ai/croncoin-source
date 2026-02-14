@@ -20,9 +20,9 @@
 
 namespace wallet {
 //! lower bound for randomly-chosen target change amount
-static constexpr CAmount CHANGE_LOWER{50000};
+static constexpr CAmount CHANGE_LOWER{1};
 //! upper bound for randomly-chosen target change amount
-static constexpr CAmount CHANGE_UPPER{1000000};
+static constexpr CAmount CHANGE_UPPER{10};
 
 /** A UTXO under consideration for use in funding a new transaction. */
 struct COutput {
