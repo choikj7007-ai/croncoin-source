@@ -93,7 +93,7 @@ class ResendWalletTransactionsTest(CronCoinTestFramework):
         child_tx_info = node.gettransaction(txid=child_txid, verbose=True)
         child_output_value = child_tx_info["decoded"]["vout"][0]["value"]
         # Include an additional 1 vbyte buffer to handle when we have a smaller signature
-        additional_child_fee = get_fee(child_tx_info["decoded"]["vsize"] + 1, Decimal(0.00001100))
+        additional_child_fee = get_fee(child_tx_info["decoded"]["vsize"] + 1, Decimal(1.1))
         while True:
             txids = node.listreceivedbyaddress(minconf=0, address_filter=addr)[0]["txids"]
             if txids == [child_txid, txid]:

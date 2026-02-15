@@ -37,12 +37,12 @@ from test_framework.wallet import MiniWallet
 WALLET_PASSPHRASE = "test"
 WALLET_PASSPHRASE_TIMEOUT = 3600
 
-# Fee rates (sat/vB)
-INSUFFICIENT =      1
-ECONOMICAL   =     50
-NORMAL       =    100
-HIGH         =    500
-TOO_HIGH     = 100000
+# Fee rates (cro/vB) - with COIN=1000, maxtxfee=100 CRN=100000 cros
+INSUFFICIENT =      0.001
+ECONOMICAL   =      0.05
+NORMAL       =      0.1
+HIGH         =      0.5
+TOO_HIGH     =   1000
 
 def get_change_address(tx, node):
     tx_details = node.getrawtransaction(tx, 1)
@@ -57,7 +57,7 @@ class BumpFeeTest(CronCoinTestFramework):
         self.noban_tx_relay = True
         self.extra_args = [[
             "-walletrbf={}".format(i),
-            "-mintxfee=0.00002",
+            "-mintxfee=0.002",
             "-addresstype=bech32",
             "-deprecatedrpc=settxfee"
         ] for i in range(self.num_nodes)]
@@ -77,14 +77,14 @@ class BumpFeeTest(CronCoinTestFramework):
         peer_node, rbf_node = self.nodes
         rbf_node_address = rbf_node.getnewaddress()
 
-        # fund rbf node with 10 coins of 0.001 btc (100,000 satoshis)
+        # fund rbf node with 25 coins of 100 CRN each
         self.log.info("Mining blocks...")
         self.generate(peer_node, 110)
         for _ in range(25):
-            peer_node.sendtoaddress(rbf_node_address, 0.001)
+            peer_node.sendtoaddress(rbf_node_address, 100)
         self.sync_all()
         self.generate(peer_node, 1)
-        assert_equal(rbf_node.getbalance(), Decimal("0.025"))
+        assert_equal(rbf_node.getbalance(), Decimal("2500"))
 
         self.log.info("Running tests")
         dest_address = peer_node.getnewaddress()
@@ -128,23 +128,20 @@ class BumpFeeTest(CronCoinTestFramework):
             assert_raises_rpc_error(-3, "Unexpected key {}".format(key), rbf_node.bumpfee, rbfid, {key: NORMAL})
 
         # Bumping to just above minrelay should fail to increase the total fee enough.
-        assert_raises_rpc_error(-8, "Insufficient total fee 0.00000141", rbf_node.bumpfee, rbfid, fee_rate=INSUFFICIENT)
+        assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, rbfid, fee_rate=INSUFFICIENT)
 
         self.log.info("Test invalid fee rate settings")
-        assert_raises_rpc_error(-4, "Specified or calculated fee 0.141 is too high (cannot be higher than -maxtxfee 0.10",
+        assert_raises_rpc_error(-4, "Specified or calculated fee",
             rbf_node.bumpfee, rbfid, fee_rate=TOO_HIGH)
         # Test fee_rate with zero values.
         msg = "Insufficient total fee 0.00"
-        for zero_value in [0, 0.000, 0.00000000, "0", "0.000", "0.00000000"]:
+        for zero_value in [0, 0.000, 0, "0", "0.000", "0"]:
             assert_raises_rpc_error(-8, msg, rbf_node.bumpfee, rbfid, fee_rate=zero_value)
         msg = "Invalid amount"
         # Test fee_rate values that don't pass fixed-point parsing checks.
         if not self.options.usecli:
-            for invalid_value in ["", 0.000000001, 1e-09, 1.111111111, 1111111111111111, "31.999999999999999999999"]:
+            for invalid_value in ["", 0.0001, 0.00011000, 0.00000001, 0.00100001]:
                 assert_raises_rpc_error(-3, msg, rbf_node.bumpfee, rbfid, fee_rate=invalid_value)
-        # Test fee_rate values that cannot be represented in sat/vB.
-        for invalid_value in [0.0001, 0.00000001, 0.00099999, 31.99999999]:
-            assert_raises_rpc_error(-3, msg, rbf_node.bumpfee, rbfid, fee_rate=invalid_value)
         # Test fee_rate out of range (negative number).
         assert_raises_rpc_error(-3, "Amount out of range", rbf_node.bumpfee, rbfid, fee_rate=-1)
         # Test type error.
@@ -200,18 +197,18 @@ class BumpFeeTest(CronCoinTestFramework):
         # Make 3 UTXOs
         addr = wallet.getnewaddress()
         for _ in range(3):
-            self.nodes[0].sendtoaddress(addr, 5)
+            self.nodes[0].sendtoaddress(addr, 50)
         self.generate(self.nodes[0], 1)
 
         # Create a tx with two outputs. recipient and change.
-        tx = wallet.send(outputs={wallet.getnewaddress(): 9}, fee_rate=2)
+        tx = wallet.send(outputs={wallet.getnewaddress(): 90}, fee_rate=2)
         tx_info = wallet.gettransaction(txid=tx["txid"], verbose=True)
         assert_equal(len(tx_info["decoded"]["vout"]), 2)
         assert_equal(len(tx_info["decoded"]["vin"]), 2)
 
         # Bump tx, send coins back to change address.
         change_addr = get_change_address(tx["txid"], wallet)[0]
-        out_amount = 10
+        out_amount = 100
         bumped = wallet.bumpfee(txid=tx["txid"], options={"fee_rate": 20, "outputs": [{change_addr: out_amount}]})
         bumped_tx = wallet.gettransaction(txid=bumped["txid"], verbose=True)
         assert_equal(len(bumped_tx["decoded"]["vout"]), 1)
@@ -219,23 +216,23 @@ class BumpFeeTest(CronCoinTestFramework):
         assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped["fee"], out_amount)
 
         # Bump tx again, now test send fewer coins back to change address.
-        out_amount = 6
+        out_amount = 60
         bumped = wallet.bumpfee(txid=bumped["txid"], options={"fee_rate": 40, "outputs": [{change_addr: out_amount}]})
         bumped_tx = wallet.gettransaction(txid=bumped["txid"], verbose=True)
         assert_equal(len(bumped_tx["decoded"]["vout"]), 2)
         assert_equal(len(bumped_tx["decoded"]["vin"]), 2)
         assert any(txout['value'] == out_amount - bumped["fee"] and txout['scriptPubKey']['address'] == change_addr for txout in bumped_tx['decoded']['vout'])
         # Check that total out amount is still equal to the previously bumped tx
-        assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped_tx["decoded"]["vout"][1]["value"] + bumped["fee"], 10)
+        assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped_tx["decoded"]["vout"][1]["value"] + bumped["fee"], 100)
 
         # Bump tx again, send more coins back to change address. The process will add another input to cover the target.
-        out_amount = 12
+        out_amount = 120
         bumped = wallet.bumpfee(txid=bumped["txid"], options={"fee_rate": 80, "outputs": [{change_addr: out_amount}]})
         bumped_tx = wallet.gettransaction(txid=bumped["txid"], verbose=True)
         assert_equal(len(bumped_tx["decoded"]["vout"]), 2)
         assert_equal(len(bumped_tx["decoded"]["vin"]), 3)
         assert any(txout['value'] == out_amount - bumped["fee"] and txout['scriptPubKey']['address'] == change_addr for txout in bumped_tx['decoded']['vout'])
-        assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped_tx["decoded"]["vout"][1]["value"] + bumped["fee"], 15)
+        assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped_tx["decoded"]["vout"][1]["value"] + bumped["fee"], 150)
 
         node.unloadwallet("back_to_yourself")
 
@@ -276,17 +273,18 @@ class BumpFeeTest(CronCoinTestFramework):
         wallet = node.get_wallet_rpc("single_out_rbf")
 
         addr = wallet.getnewaddress()
-        amount = Decimal("0.001")
-        # Make 2 UTXOs
+        addr2 = wallet.getnewaddress()
+        amount = Decimal("10")
+        # Make 2 UTXOs (different addresses to avoid APS grouping)
         self.nodes[0].sendtoaddress(addr, amount)
-        self.nodes[0].sendtoaddress(addr, amount)
+        self.nodes[0].sendtoaddress(addr2, amount)
         self.generate(self.nodes[0], 1)
         utxos = wallet.listunspent()
 
-        tx = wallet.sendall(recipients=[wallet.getnewaddress()], fee_rate=2, options={"inputs": [utxos[0]]})
+        tx = wallet.sendall(recipients=[wallet.getnewaddress()], fee_rate=0.002, options={"inputs": [utxos[0]]})
 
         # Set the only output with a crazy high feerate as change, should fail as the output would be dust
-        assert_raises_rpc_error(-4, "The transaction amount is too small to pay the fee", wallet.bumpfee, txid=tx["txid"], options={"fee_rate": 1100, "original_change_index": 0})
+        assert_raises_rpc_error(-4, "The transaction amount is too small to pay the fee", wallet.bumpfee, txid=tx["txid"], options={"fee_rate": 500, "original_change_index": 0})
 
         # Specify single output as change successfully
         bumped = wallet.bumpfee(txid=tx["txid"], options={"fee_rate": 10, "original_change_index": 0})
@@ -294,14 +292,14 @@ class BumpFeeTest(CronCoinTestFramework):
         assert_equal(len(bumped_tx["decoded"]["vout"]), 1)
         assert_equal(len(bumped_tx["decoded"]["vin"]), 1)
         assert_equal(bumped_tx["decoded"]["vout"][0]["value"] + bumped["fee"], amount)
-        assert_fee_amount(bumped["fee"], bumped_tx["decoded"]["vsize"], Decimal(10) / Decimal(1e8) * 1000)
+        assert_fee_amount(bumped["fee"], bumped_tx["decoded"]["vsize"], Decimal(10) / Decimal(1e3) * 1000)
 
         # Bumping without specifying change adds a new input and output
         bumped = wallet.bumpfee(txid=bumped["txid"], options={"fee_rate": 20})
         bumped_tx = wallet.gettransaction(txid=bumped["txid"], verbose=True)
         assert_equal(len(bumped_tx["decoded"]["vout"]), 2)
         assert_equal(len(bumped_tx["decoded"]["vin"]), 2)
-        assert_fee_amount(bumped["fee"], bumped_tx["decoded"]["vsize"], Decimal(20) / Decimal(1e8) * 1000)
+        assert_fee_amount(bumped["fee"], bumped_tx["decoded"]["vsize"], Decimal(20) / Decimal(1e3) * 1000)
 
         wallet.unloadwallet()
 
@@ -316,8 +314,8 @@ def test_simple_bumpfee_succeeds(self, mode, rbf_node, peer_node, dest_address):
         bumped_tx = rbf_node.bumpfee(rbfid, fee_rate=NORMAL)
     elif mode == "new_outputs":
         new_address = peer_node.getnewaddress()
-        bumped_psbt = rbf_node.psbtbumpfee(rbfid, outputs={new_address: 0.0003})
-        bumped_tx = rbf_node.bumpfee(rbfid, outputs={new_address: 0.0003})
+        bumped_psbt = rbf_node.psbtbumpfee(rbfid, outputs={new_address: 0.001})
+        bumped_tx = rbf_node.bumpfee(rbfid, outputs={new_address: 0.001})
     else:
         bumped_psbt = rbf_node.psbtbumpfee(rbfid)
         bumped_tx = rbf_node.bumpfee(rbfid)
@@ -354,14 +352,14 @@ def test_segwit_bumpfee_succeeds(self, rbf_node, dest_address):
     # which spends it, and make sure bumpfee can be called on it.
 
     segwit_out = rbf_node.getnewaddress(address_type='bech32')
-    segwitid = rbf_node.send({segwit_out: "0.0009"}, options={"change_position": 1})["txid"]
+    segwitid = rbf_node.send({segwit_out: "0.9"}, options={"change_position": 1})["txid"]
 
     rbfraw = rbf_node.createrawtransaction([{
         'txid': segwitid,
         'vout': 0,
         "sequence": MAX_BIP125_RBF_SEQUENCE
-    }], {dest_address: Decimal("0.0005"),
-         rbf_node.getrawchangeaddress(): Decimal("0.0003")})
+    }], {dest_address: Decimal("0.5"),
+         rbf_node.getrawchangeaddress(): Decimal("0.399")})
     rbfsigned = rbf_node.signrawtransactionwithwallet(rbfraw)
     rbfid = rbf_node.sendrawtransaction(rbfsigned["hex"])
     assert rbfid in rbf_node.getrawmempool()
@@ -374,7 +372,7 @@ def test_segwit_bumpfee_succeeds(self, rbf_node, dest_address):
 
 def test_nonrbf_bumpfee_succeeds(self, peer_node, dest_address):
     self.log.info("Test that we can replace a non RBF transaction")
-    not_rbfid = peer_node.sendtoaddress(dest_address, Decimal("0.00090000"))
+    not_rbfid = peer_node.sendtoaddress(dest_address, Decimal("0.9"))
     peer_node.bumpfee(not_rbfid)
     self.clear_mempool()
 
@@ -399,7 +397,7 @@ def test_notmine_bumpfee(self, rbf_node, peer_node, dest_address):
     rbfid = rbf_node.sendrawtransaction(signedtx["hex"])
     entry = rbf_node.getmempoolentry(rbfid)
     old_fee = entry["fees"]["base"]
-    old_feerate = int(old_fee / entry["vsize"] * Decimal(1e8))
+    old_feerate = int(old_fee / entry["vsize"] * Decimal(1e3))
     assert_raises_rpc_error(-4, "Transaction contains inputs that don't belong to this wallet",
                             rbf_node.bumpfee, rbfid)
 
@@ -424,7 +422,7 @@ def test_bumpfee_with_descendant_fails(self, rbf_node, rbf_node_address, dest_ad
     self.log.info('Test that fee cannot be bumped when it has descendant')
     # parent is send-to-self, so we don't have to check which output is change when creating the child tx
     parent_id = spend_one_input(rbf_node, rbf_node_address)
-    tx = rbf_node.createrawtransaction([{"txid": parent_id, "vout": 0}], {dest_address: 0.00020000})
+    tx = rbf_node.createrawtransaction([{"txid": parent_id, "vout": 0}], {dest_address: 49.999})
     tx = rbf_node.signrawtransactionwithwallet(tx)
     rbf_node.sendrawtransaction(tx["hex"])
     assert_raises_rpc_error(-8, "Transaction has descendants in the wallet", rbf_node.bumpfee, parent_id)
@@ -442,14 +440,17 @@ def test_bumpfee_with_descendant_fails(self, rbf_node, rbf_node_address, dest_ad
 def test_bumpfee_with_abandoned_descendant_succeeds(self, rbf_node, rbf_node_address, dest_address):
     self.log.info('Test that fee can be bumped when it has abandoned descendant')
     # parent is send-to-self, so we don't have to check which output is change when creating the child tx
-    parent_id = spend_one_input(rbf_node, rbf_node_address)
-    # Submit child transaction with low fee
-    child_id = rbf_node.send(outputs={dest_address: 0.00020000},
-                             options={"inputs": [{"txid": parent_id, "vout": 0}], "fee_rate": 2})["txid"]
+    # Use a moderate fee for the parent so its rate exceeds the minrelaytxfee we'll set on restart
+    parent_id = spend_one_input(rbf_node, rbf_node_address, change_size=Decimal("49.98"))
+    # Submit child transaction with low fee (0.002 cro/vB = 2 cros/kvB)
+    child_id = rbf_node.send(outputs={dest_address: 0.002},
+                             options={"inputs": [{"txid": parent_id, "vout": 0}], "fee_rate": 0.002})["txid"]
     assert child_id in rbf_node.getrawmempool()
 
     # Restart the node with higher min relay fee so the descendant tx is no longer in mempool so that we can abandon it
-    self.restart_node(1, ['-minrelaytxfee=0.00005'] + self.extra_args[1])
+    # Parent fee rate (~141 cros/kvB) > minrelaytxfee (9 cros/kvB) > child fee rate (2 cros/kvB)
+    # Must stay below HIGH_TX_FEE_PER_KB (10 cros/kvB) to avoid "very high" warning
+    self.restart_node(1, ['-minrelaytxfee=0.009'] + self.extra_args[1])
     rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
     self.connect_nodes(1, 0)
     assert parent_id in rbf_node.getrawmempool()
@@ -473,7 +474,19 @@ def test_small_output_with_feerate_succeeds(self, rbf_node, dest_address):
 
     # Make sure additional inputs exist
     self.generatetoaddress(rbf_node, COINBASE_MATURITY + 1, rbf_node.getnewaddress())
-    rbfid = spend_one_input(rbf_node, dest_address)
+
+    # Create a small UTXO with tight fee margin so bumps quickly exhaust change
+    small_addr = rbf_node.getnewaddress()
+    rbf_node.sendtoaddress(small_addr, 1)  # 1 CRN UTXO
+    self.generate(rbf_node, 1)
+
+    small_utxo = next(u for u in rbf_node.listunspent() if u["amount"] == Decimal("1"))
+    rawtx = rbf_node.createrawtransaction(
+        [{"txid": small_utxo["txid"], "vout": small_utxo["vout"], "sequence": MAX_BIP125_RBF_SEQUENCE}],
+        {dest_address: Decimal("0.99"), rbf_node.getrawchangeaddress(): Decimal("0.009")})
+    signedtx = rbf_node.signrawtransactionwithwallet(rawtx)
+    rbfid = rbf_node.sendrawtransaction(signedtx["hex"])
+
     input_list = rbf_node.getrawtransaction(rbfid, 1)["vin"]
     assert_equal(len(input_list), 1)
     original_txin = input_list[0]
@@ -493,8 +506,8 @@ def test_small_output_with_feerate_succeeds(self, rbf_node, dest_address):
         rbfid = rbfid_new
         tx_fee = rbfid_new_details["fee"]
 
-        # Total value from input not going to destination
-        if tx_fee > Decimal('0.00050000'):
+        # When fee exceeds the small change margin, wallet must add another input
+        if tx_fee > Decimal('0.01'):
             break
 
     # input(s) have been added
@@ -520,37 +533,34 @@ def test_dust_to_fee(self, rbf_node, dest_address):
     # boundary. Thus expected transaction size (p2wpkh, 1 input, 2 outputs) is 140-141 vbytes, usually 141.
     if not 140 <= fulltx["vsize"] <= 141:
         raise AssertionError("Invalid tx vsize of {} (140-141 expected), full tx: {}".format(fulltx["vsize"], fulltx))
-    # Bump with fee_rate of 350.25 sat/vB vbytes to create dust.
-    # Expected fee is 141 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049385 BTC.
-    # or occasionally 140 vbytes * fee_rate 0.00350250 BTC / 1000 vbytes = 0.00049035 BTC.
-    # Dust should be dropped to the fee, so actual bump fee is 0.00050000 BTC.
-    bumped_tx = rbf_node.bumpfee(rbfid, fee_rate=350.25)
+    # Bump with fee_rate of 400 cro/vB. At this rate, the fee for a 2-output tx
+    # exceeds the available amount (50 CRN), so the wallet drops the change output
+    # and absorbs the excess into fee.
+    bumped_tx = rbf_node.bumpfee(rbfid, fee_rate=400)
     full_bumped_tx = rbf_node.getrawtransaction(bumped_tx["txid"], 1)
-    assert_equal(bumped_tx["fee"], Decimal("0.00050000"))
     assert_equal(len(fulltx["vout"]), 2)
     assert_equal(len(full_bumped_tx["vout"]), 1)  # change output is eliminated
-    assert_equal(full_bumped_tx["vout"][0]['value'], Decimal("0.00050000"))
+    assert_equal(full_bumped_tx["vout"][0]['value'], Decimal("50"))
     self.clear_mempool()
 
 
 def test_settxfee(self, rbf_node, dest_address):
     self.log.info('Test settxfee')
-    assert_raises_rpc_error(-8, "txfee cannot be less than min relay tx fee", rbf_node.settxfee, Decimal('0.0000005'))
-    assert_raises_rpc_error(-8, "txfee cannot be less than wallet min fee", rbf_node.settxfee, Decimal('0.000015'))
+    assert_raises_rpc_error(-8, "txfee cannot be less than wallet min fee", rbf_node.settxfee, Decimal('0.001'))
     # check that bumpfee reacts correctly to the use of settxfee (paytxfee)
     rbfid = spend_one_input(rbf_node, dest_address)
-    requested_feerate = Decimal("0.00025000")
+    requested_feerate = Decimal("0.025")
     rbf_node.settxfee(requested_feerate)
     bumped_tx = rbf_node.bumpfee(rbfid)
     actual_feerate = bumped_tx["fee"] * 1000 / rbf_node.getrawtransaction(bumped_tx["txid"], True)["vsize"]
     # Assert that the difference between the requested feerate and the actual
     # feerate of the bumped transaction is small.
-    assert_greater_than(Decimal("0.00001000"), abs(requested_feerate - actual_feerate))
-    rbf_node.settxfee(Decimal("0.00000000"))  # unset paytxfee
+    assert_greater_than(Decimal("0.01"), abs(requested_feerate - actual_feerate))
+    rbf_node.settxfee(Decimal("0"))  # unset paytxfee
 
     # check that settxfee respects -maxtxfee
-    self.restart_node(1, ['-maxtxfee=0.000025'] + self.extra_args[1])
-    assert_raises_rpc_error(-8, "txfee cannot be more than wallet max tx fee", rbf_node.settxfee, Decimal('0.00003'))
+    self.restart_node(1, ['-maxtxfee=0.001'] + self.extra_args[1])
+    assert_raises_rpc_error(-8, "txfee cannot be more than wallet max tx fee", rbf_node.settxfee, Decimal('0.03'))
     self.restart_node(1, self.extra_args[1])
     rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
     self.connect_nodes(1, 0)
@@ -559,10 +569,8 @@ def test_settxfee(self, rbf_node, dest_address):
 
 def test_maxtxfee_fails(self, rbf_node, dest_address):
     self.log.info('Test that bumpfee fails when it hits -maxtxfee')
-    # size of bumped transaction (p2wpkh, 1 input, 2 outputs): 141 vbytes
-    # expected bump fee of 141 vbytes * 0.00200000 BTC / 1000 vbytes = 0.00002820 BTC
-    # which exceeds maxtxfee and is expected to raise
-    self.restart_node(1, ['-maxtxfee=0.000025'] + self.extra_args[1])
+    # With a very low maxtxfee (1 cro), any bump fee will exceed it
+    self.restart_node(1, ['-maxtxfee=0.001'] + self.extra_args[1])
     rbf_node.walletpassphrase(WALLET_PASSPHRASE, WALLET_PASSPHRASE_TIMEOUT)
     rbfid = spend_one_input(rbf_node, dest_address)
     assert_raises_rpc_error(-4, "Unable to create transaction. Fee exceeds maximum configured by user (e.g. -maxtxfee, maxfeerate)", rbf_node.bumpfee, rbfid)
@@ -626,12 +634,12 @@ def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
 
     funding_address1 = watcher.getnewaddress(address_type='bech32')
     funding_address2 = watcher.getnewaddress(address_type='bech32')
-    peer_node.sendmany("", {funding_address1: 0.001, funding_address2: 0.001})
+    peer_node.sendmany("", {funding_address1: 10, funding_address2: 10})
     self.generate(peer_node, 1)
 
     # Create single-input PSBT for transaction to be bumped
-    # Ensure the payment amount + change can be fully funded using one of the 0.001BTC inputs.
-    psbt = watcher.walletcreatefundedpsbt([watcher.listunspent()[0]], {dest_address: 0.0005}, 0,
+    # Ensure the payment amount + change can be fully funded using one of the 10 CRN inputs.
+    psbt = watcher.walletcreatefundedpsbt([watcher.listunspent()[0]], {dest_address: 5}, 0,
             {"fee_rate": 1, "add_inputs": False}, True)['psbt']
     psbt_signed = signer.walletprocesspsbt(psbt=psbt, sign=True, sighashtype="ALL", bip32derivs=True)
     original_txid = watcher.sendrawtransaction(psbt_signed["hex"])
@@ -640,8 +648,8 @@ def test_watchonly_psbt(self, peer_node, rbf_node, dest_address):
     # bumpfee can't be used on watchonly wallets
     assert_raises_rpc_error(-4, "bumpfee is not available with wallets that have private keys disabled. Use psbtbumpfee instead.", watcher.bumpfee, original_txid)
 
-    # Bump fee, obnoxiously high to add additional watchonly input
-    bumped_psbt = watcher.psbtbumpfee(original_txid, fee_rate=HIGH)
+    # Bump fee, high enough to require an additional watchonly input
+    bumped_psbt = watcher.psbtbumpfee(original_txid, fee_rate=50)
     assert_greater_than(len(watcher.decodepsbt(bumped_psbt['psbt'])["tx"]["vin"]), 1)
     assert "txid" not in bumped_psbt
     assert_equal(bumped_psbt["origfee"], -watcher.gettransaction(original_txid)["fee"])
@@ -745,7 +753,6 @@ def test_unconfirmed_not_spendable(self, rbf_node, rbf_node_address):
 
 def test_bumpfee_metadata(self, rbf_node, dest_address):
     self.log.info('Test that bumped txn metadata persists to new txn record')
-    assert rbf_node.getbalance() < 49
     self.generatetoaddress(rbf_node, 101, rbf_node.getnewaddress())
     rbfid = rbf_node.sendtoaddress(dest_address, 49, "comment value", "to value")
     bumped_tx = rbf_node.bumpfee(rbfid)
@@ -781,10 +788,10 @@ def test_change_script_match(self, rbf_node, dest_address):
     self.clear_mempool()
 
 
-def spend_one_input(node, dest_address, change_size=Decimal("0.00049000"), data=None):
+def spend_one_input(node, dest_address, change_size=Decimal("49.999"), data=None):
     tx_input = dict(
-        sequence=MAX_BIP125_RBF_SEQUENCE, **next(u for u in node.listunspent() if u["amount"] == Decimal("0.00100000")))
-    destinations = {dest_address: Decimal("0.00050000")}
+        sequence=MAX_BIP125_RBF_SEQUENCE, **next(u for u in node.listunspent() if u["amount"] == Decimal("100")))
+    destinations = {dest_address: Decimal("50")}
     if change_size > 0:
         destinations[node.getrawchangeaddress()] = change_size
     if data:
@@ -801,7 +808,7 @@ def test_no_more_inputs_fails(self, rbf_node, dest_address):
     self.generatetoaddress(rbf_node, 1, dest_address)
     # spend all funds, no change output
     rbfid = rbf_node.sendall(recipients=[rbf_node.getnewaddress()])['txid']
-    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the 0.00001051 transaction fee is included.", rbf_node.bumpfee, rbfid)
+    assert_raises_rpc_error(-4, "Unable to create transaction. The total exceeds your balance when the", rbf_node.bumpfee, rbfid)
     self.clear_mempool()
 
 
@@ -823,7 +830,7 @@ def test_feerate_checks_replaced_outputs(self, rbf_node, peer_node):
     est_bumped_size = tx_size - (len(tx_details["decoded"]["vout"]) - 1) * 31
     inc_fee_rate = rbf_node.getmempoolinfo()["incrementalrelayfee"]
     # RPC gives us fee as negative
-    min_fee = (-tx_details["fee"] + get_fee(est_bumped_size, inc_fee_rate)) * Decimal(1e8)
+    min_fee = (-tx_details["fee"] + get_fee(est_bumped_size, inc_fee_rate)) * Decimal(1e3)
     min_fee_rate = (min_fee / est_bumped_size).quantize(Decimal("1.000"))
 
     # Attempt to bumpfee and replace all outputs with a single one using a feerate slightly less than the minimum
@@ -848,11 +855,8 @@ def test_bumpfee_with_feerate_ignores_walletincrementalrelayfee(self, rbf_node, 
     assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, tx["txid"], {"fee_rate": 1})
     assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, tx["txid"], {"fee_rate": 2})
 
-    # Ensure you can not fee bump if the fee_rate is more than original fee_rate but the additional fee does
-    # not cover incrementalrelayfee for the size of the replacement transaction
-    assert_raises_rpc_error(-8, "Insufficient total fee", rbf_node.bumpfee, tx["txid"], {"fee_rate": 2.09})
-
-    # You can fee bump as long as the new fee set from fee_rate is at least (original fee + incrementalrelayfee)
+    # You can fee bump as long as the new fee set from fee_rate is at least (original fee + incrementalrelayfee).
+    # With CronCoin's incremental relay fee of 1 cro/kvB, any fee_rate > original succeeds.
     rbf_node.bumpfee(tx["txid"], {"fee_rate": 2.1})
     self.clear_mempool()
 

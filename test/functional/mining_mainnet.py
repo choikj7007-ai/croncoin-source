@@ -14,7 +14,7 @@ order to maximally raise the difficulty. Verify this using the getmininginfo RPC
 
 """
 
-from test_framework.test_framework import CronCoinTestFramework
+from test_framework.test_framework import CronCoinTestFramework, SkipTest
 from test_framework.util import (
     assert_equal,
 )
@@ -74,14 +74,28 @@ class MiningMainnetTest(CronCoinTestFramework):
         return prev_hash
 
 
+    # The pregenerated block data in mainnet_alt.json was mined against
+    # Bitcoin's mainnet genesis block. If this chain uses a different genesis
+    # block (e.g. CronCoin), the blocks won't connect, so skip the test.
+    EXPECTED_GENESIS_HASH = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+
     def run_test(self):
         node = self.nodes[0]
         # Clear disk space warning
         node.stderr.seek(0)
         node.stderr.truncate()
+
+        genesis_hash = node.getbestblockhash()
+        if genesis_hash != self.EXPECTED_GENESIS_HASH:
+            raise SkipTest(
+                f"Pregenerated block data requires Bitcoin mainnet genesis block "
+                f"({self.EXPECTED_GENESIS_HASH}), but this chain has genesis "
+                f"{genesis_hash}. Skipping test."
+            )
+
         self.log.info("Load alternative mainnet blocks")
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.options.datafile)
-        prev_hash = node.getbestblockhash()
+        prev_hash = genesis_hash
         blocks = None
         with open(path) as f:
             blocks = json.load(f)

@@ -17,12 +17,13 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         getcontext().prec=9
         self.setup_clean_chain = True
         self.num_nodes = 1
+        self.extra_args = [["-maxtxfee=10"]]
 
     def setup_and_fund_wallet(self, walletname):
         self.nodes[0].createwallet(walletname)
         wallet = self.nodes[0].get_wallet_rpc(walletname)
 
-        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=2)
+        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=20)
         self.generate(self.nodes[0], 1) # confirm funding tx
         return wallet
 
@@ -30,12 +31,12 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.skip_if_no_wallet()
 
     def calc_fee_rate(self, tx):
-        fee = Decimal(-1e8) * tx["fee"]
+        fee = Decimal(-1e3) * tx["fee"]
         vsize = tx["decoded"]["vsize"]
         return fee / vsize
 
     def calc_set_fee_rate(self, txs):
-        fees = Decimal(-1e8) * sum([tx["fee"] for tx in txs]) # fee is negative!
+        fees = Decimal(-1e3) * sum([tx["fee"] for tx in txs]) # fee is negative!
         vsizes = sum([tx["decoded"]["vsize"] for tx in txs])
         return fees / vsizes
 
@@ -142,18 +143,18 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         wallet = self.setup_and_fund_wallet("two_parents_wallet")
 
         # Add second UTXO to tested wallet
-        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=2)
+        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=20)
         self.generate(self.nodes[0], 1) # confirm funding tx
 
-        parent_one_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=2)
+        parent_one_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=19, fee_rate=2)
         p_one_tx = wallet.gettransaction(txid=parent_one_txid, verbose=True)
         self.assert_undershoots_target(p_one_tx)
 
-        parent_two_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=1)
+        parent_two_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=19, fee_rate=1)
         p_two_tx = wallet.gettransaction(txid=parent_two_txid, verbose=True)
         self.assert_undershoots_target(p_two_tx)
 
-        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=2.8, fee_rate=self.target_fee_rate)
+        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=35, fee_rate=self.target_fee_rate)
         ancestor_aware_tx = wallet.gettransaction(txid=ancestor_aware_txid, verbose=True)
         self.assert_spends_only_parents(ancestor_aware_tx, [parent_one_txid, parent_two_txid])
 
@@ -170,20 +171,20 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         wallet = self.setup_and_fund_wallet("two_mixed_parents_wallet")
 
         # Add second UTXO to tested wallet
-        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=2)
+        self.def_wallet.sendtoaddress(address=wallet.getnewaddress(), amount=20)
         self.generate(self.nodes[0], 1) # confirm funding tx
 
-        high_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=self.target_fee_rate*2)
+        high_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=18, fee_rate=self.target_fee_rate*2)
         p_high_tx = wallet.gettransaction(txid=high_parent_txid, verbose=True)
         # This time the parent is greater than the child
         self.assert_beats_target(p_high_tx)
 
-        parent_low_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=1)
+        parent_low_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=19, fee_rate=1)
         p_low_tx = wallet.gettransaction(txid=parent_low_txid, verbose=True)
         # Other parent needs bump
         self.assert_undershoots_target(p_low_tx)
 
-        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=2.8, fee_rate=self.target_fee_rate)
+        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=33, fee_rate=self.target_fee_rate)
         ancestor_aware_tx = wallet.gettransaction(txid=ancestor_aware_txid, verbose=True)
         self.assert_spends_only_parents(ancestor_aware_tx, [parent_low_txid, high_parent_txid])
 
@@ -202,12 +203,12 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test with low parent and high grandparent tx")
         wallet = self.setup_and_fund_wallet("high_low_chain_wallet")
 
-        grandparent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.8, fee_rate=self.target_fee_rate * 10)
+        grandparent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=11, fee_rate=self.target_fee_rate * 10)
         gp_tx = wallet.gettransaction(txid=grandparent_txid, verbose=True)
         # grandparent has higher feerate
         self.assert_beats_target(gp_tx)
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=1)
         # parent is low feerate
         p_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
         self.assert_undershoots_target(p_tx)
@@ -232,13 +233,13 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test with low parent and higher low grandparent tx")
         wallet = self.setup_and_fund_wallet("low_and_lower_chain_wallet")
 
-        grandparent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.8, fee_rate=5)
+        grandparent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=19, fee_rate=5)
         gp_tx = wallet.gettransaction(txid=grandparent_txid, verbose=True)
 
         # grandparent has higher feerate, but below target
         self.assert_undershoots_target(gp_tx)
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1.5, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=18, fee_rate=1)
         p_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
         # parent even lower
         self.assert_undershoots_target(p_tx)
@@ -264,7 +265,7 @@ class UnconfirmedInputTest(CronCoinTestFramework):
 
         self.assert_undershoots_target(parent_tx)
 
-        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=0.5, fee_rate=self.target_fee_rate, subtractfeefromamount=True)
+        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=5, fee_rate=self.target_fee_rate, subtractfeefromamount=True)
         ancestor_aware_tx = wallet.gettransaction(txid=ancestor_aware_txid, verbose=True)
 
         self.assert_spends_only_parents(ancestor_aware_tx, [parent_txid])
@@ -281,7 +282,7 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test with preset input from low feerate unconfirmed transaction")
         wallet = self.setup_and_fund_wallet("preset_input")
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=1)
         parent_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
 
         self.assert_undershoots_target(parent_tx)
@@ -339,13 +340,13 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test where two UTXOs have overlapping ancestry")
         wallet = self.setup_and_fund_wallet("overlapping_ancestry_wallet")
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=1)
         two_output_parent_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
 
         self.assert_undershoots_target(two_output_parent_tx)
 
         # spend both outputs from parent transaction
-        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=1.5, fee_rate=self.target_fee_rate)
+        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=15, fee_rate=self.target_fee_rate)
         ancestor_aware_tx = wallet.gettransaction(txid=ancestor_aware_txid, verbose=True)
         self.assert_spends_only_parents(ancestor_aware_tx, [parent_txid, parent_txid])
 
@@ -361,13 +362,14 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test where a low-fee sibling tx gets created and check that bumping ignores it")
         wallet = self.setup_and_fund_wallet("ignore-sibling")
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1, fee_rate=2)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=2)
         parent_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
 
         self.assert_undershoots_target(parent_tx)
 
-        # create sibling tx
-        sibling_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=0.9, fee_rate=1)
+        # create sibling tx - send large amount to consume most of parent change,
+        # so sibling change has negative effective value and wallet must use parent output
+        sibling_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=9, fee_rate=1)
         sibling_tx = wallet.gettransaction(txid=sibling_txid, verbose=True)
         self.assert_undershoots_target(sibling_tx)
 
@@ -389,12 +391,13 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         self.log.info("Start test where a high-fee sibling tx bumps the parent")
         wallet = self.setup_and_fund_wallet("generous-sibling")
 
-        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=1)
         parent_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
         self.assert_undershoots_target(parent_tx)
 
-        # create sibling tx
-        sibling_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=0.9, fee_rate=3*self.target_fee_rate)
+        # create sibling tx - send enough to consume most of parent output
+        # CronCoin: use 2*target (not 3*) to keep bumping cost affordable with one input
+        sibling_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=6, fee_rate=2*self.target_fee_rate)
         sibling_tx = wallet.gettransaction(txid=sibling_txid, verbose=True)
         self.assert_beats_target(sibling_tx)
 
@@ -421,12 +424,12 @@ class UnconfirmedInputTest(CronCoinTestFramework):
     def test_confirmed_and_unconfirmed_parent(self):
         self.log.info("Start test with one unconfirmed and one confirmed input")
         wallet = self.setup_and_fund_wallet("confirmed_and_unconfirmed_wallet")
-        confirmed_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=1, fee_rate=self.target_fee_rate)
-        self.generate(self.nodes[0], 1) # Wallet has two confirmed UTXOs of ~1BTC each
-        unconfirmed_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=0.5, fee_rate=0.5*self.target_fee_rate)
+        confirmed_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=10, fee_rate=self.target_fee_rate)
+        self.generate(self.nodes[0], 1) # Wallet has two confirmed UTXOs of ~10 CRN each
+        unconfirmed_parent_txid = wallet.sendtoaddress(address=wallet.getnewaddress(), amount=8, fee_rate=0.5*self.target_fee_rate)
 
-        # wallet has one confirmed UTXO of 1BTC and two unconfirmed UTXOs of ~0.5BTC each
-        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=1.4, fee_rate=self.target_fee_rate)
+        # wallet has one confirmed UTXO of ~10 CRN and two unconfirmed UTXOs of ~8 CRN and small change
+        ancestor_aware_txid = wallet.sendtoaddress(address=self.def_wallet.getnewaddress(), amount=15, fee_rate=self.target_fee_rate)
         ancestor_aware_tx = wallet.gettransaction(txid=ancestor_aware_txid, verbose=True)
         self.assert_spends_only_parents(ancestor_aware_tx, [confirmed_parent_txid, unconfirmed_parent_txid])
         resulting_fee_rate = self.calc_fee_rate(ancestor_aware_tx)
@@ -441,7 +444,7 @@ class UnconfirmedInputTest(CronCoinTestFramework):
         external_address = self.def_wallet.getnewaddress()
         address_info = self.def_wallet.getaddressinfo(external_address)
         external_descriptor = address_info["desc"]
-        parent_txid = wallet.sendtoaddress(address=external_address, amount=1, fee_rate=1)
+        parent_txid = wallet.sendtoaddress(address=external_address, amount=10, fee_rate=1)
         parent_tx = wallet.gettransaction(txid=parent_txid, verbose=True)
 
         self.assert_undershoots_target(parent_tx)
@@ -465,7 +468,7 @@ class UnconfirmedInputTest(CronCoinTestFramework):
 
     def run_test(self):
         self.log.info("Starting UnconfirmedInputTest!")
-        self.target_fee_rate = 30
+        self.target_fee_rate = 6
         self.def_wallet  = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         self.generate(self.nodes[0], 110)
 

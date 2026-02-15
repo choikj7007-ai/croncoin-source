@@ -20,8 +20,8 @@ class WalletChangeAddressTest(CronCoinTestFramework):
         # discardfee is used to make change outputs less likely in the change_pos test
         self.extra_args = [
             [],
-            ["-discardfee=1"],
-            ["-avoidpartialspends", "-discardfee=1"]
+            ["-discardfee=0.1"],
+            ["-avoidpartialspends", "-discardfee=0.1"]
         ]
 
     def skip_test_if_missing_module(self):
@@ -87,7 +87,7 @@ class WalletChangeAddressTest(CronCoinTestFramework):
 
         # The avoid partial spends wallet will always create a change output
         node = self.nodes[2]
-        res = w2.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.9999"}, options={"change_position": 0})
+        res = w2.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.99"}, options={"change_position": 0})
         tx = node.getrawtransaction(res["txid"], True)
         self.assert_change_pos(w2, tx, 0)
 
@@ -95,7 +95,7 @@ class WalletChangeAddressTest(CronCoinTestFramework):
         # then create a second candidate using APS that requires a change output.
         # Ensure that the user-configured change position is kept
         node = self.nodes[1]
-        res = w1.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.9999"}, options={"change_position": 0})
+        res = w1.send({sendTo1: "1.0", sendTo2: "1.0", sendTo3: "0.99"}, options={"change_position": 0})
         tx = node.getrawtransaction(res["txid"], True)
         # If the wallet ignores the user's change_position there is still a 25%
         # that the random change position passes the test

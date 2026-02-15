@@ -37,7 +37,7 @@ class MempoolUnbroadcastTest(CronCoinTestFramework):
             self.import_deterministic_coinbase_privkeys()
             # generate a wallet txn
             addr = node.getnewaddress()
-            wallet_tx_hsh = node.sendtoaddress(addr, 0.0001)
+            wallet_tx_hsh = node.sendtoaddress(addr, 10)
 
         # generate a txn using sendrawtransaction
         txFS = self.wallet.create_self_transfer()

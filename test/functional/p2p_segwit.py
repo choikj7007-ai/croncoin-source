@@ -311,7 +311,7 @@ class SegWitTest(CronCoinTestFramework):
         # Create a transaction that spends the coinbase
         tx = CTransaction()
         tx.vin.append(CTxIn(COutPoint(txid, 0), b""))
-        tx.vout.append(CTxOut(49 * 100000000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
+        tx.vout.append(CTxOut(499999 * 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE])))
 
         # Check that serializing it with or without witness is the same
         # This is a sanity check of our testing framework.
@@ -320,7 +320,7 @@ class SegWitTest(CronCoinTestFramework):
         self.test_node.send_and_ping(msg_tx(tx))  # make sure the block was processed
         assert tx.txid_hex in self.nodes[0].getrawmempool()
         # Save this transaction for later
-        self.utxo.append(UTXO(tx.txid_int, 0, 49 * 100000000))
+        self.utxo.append(UTXO(tx.txid_int, 0, 499999 * 1000))
         self.generate(self.nodes[0], 1)
 
     @subtest
@@ -602,13 +602,13 @@ class SegWitTest(CronCoinTestFramework):
         # P2PKH output; just send tx's first output back to an anyone-can-spend.
         self.sync_mempools([self.nodes[0], self.nodes[1]])
         tx3.vin = [CTxIn(COutPoint(tx.txid_int, 0), b"")]
-        tx3.vout = [CTxOut(tx.vout[0].nValue - 1000, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE]))]
+        tx3.vout = [CTxOut(tx.vout[0].nValue - 1, CScript([OP_TRUE, OP_DROP] * 15 + [OP_TRUE]))]
         tx3.wit.vtxinwit.append(CTxInWitness())
         tx3.wit.vtxinwit[0].scriptWitness.stack = [witness_script]
         if not self.segwit_active:
             # Just check mempool acceptance, but don't add the transaction to the mempool, since witness is disallowed
             # in blocks and the tx is impossible to mine right now.
-            testres3 = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()])
+            testres3 = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()], maxfeerate=0)
             testres3[0]["fees"].pop("effective-feerate")
             testres3[0]["fees"].pop("effective-includes")
             assert_equal(testres3,
@@ -618,7 +618,7 @@ class SegWitTest(CronCoinTestFramework):
                     'allowed': True,
                     'vsize': tx3.get_vsize(),
                     'fees': {
-                        'base': Decimal('0.00001000'),
+                        'base': Decimal('0.001'),
                     },
                 }],
             )
@@ -626,7 +626,7 @@ class SegWitTest(CronCoinTestFramework):
             tx3_out = tx3.vout[0]
             tx3 = tx
             tx3.vout = [tx3_out]
-            testres3_replaced = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()])
+            testres3_replaced = self.nodes[0].testmempoolaccept([tx3.serialize_with_witness().hex()], maxfeerate=0)
             testres3_replaced[0]["fees"].pop("effective-feerate")
             testres3_replaced[0]["fees"].pop("effective-includes")
             assert_equal(testres3_replaced,
@@ -636,7 +636,7 @@ class SegWitTest(CronCoinTestFramework):
                     'allowed': True,
                     'vsize': tx3.get_vsize(),
                     'fees': {
-                        'base': Decimal('0.00011000'),
+                        'base': Decimal('10.001'),
                     },
                 }],
             )

@@ -52,7 +52,7 @@ from test_framework.wallet import (
 )
 
 # 1sat/vB feerate denominated in BTC/KvB
-FEERATE_1SAT_VB = Decimal("0.00001000")
+FEERATE_1SAT_VB = Decimal("1")
 # Number of seconds to wait to ensure no getdata is received
 GETDATA_WAIT = 60
 
@@ -81,13 +81,16 @@ class PackageRelayTest(CronCoinTestFramework):
         ]]
 
     def create_tx_below_mempoolminfee(self, wallet, utxo_to_spend=None):
-        """Create a 1-input 0.1sat/vB transaction using a confirmed UTXO. Decrement and use
-        self.sequence so that subsequent calls to this function result in unique transactions."""
+        """Create a low-feerate transaction using a confirmed UTXO. Decrement and use
+        self.sequence so that subsequent calls to this function result in unique transactions.
+        Uses target_vsize=2000 to ensure the effective fee rate is at the minimum relay fee
+        (with COIN=1000, small txs have disproportionately high effective fee rates due to
+        the minimum 1 cro fee)."""
 
         self.sequence -= 1
         assert_greater_than(self.nodes[0].getmempoolinfo()["mempoolminfee"], Decimal(DEFAULT_MIN_RELAY_TX_FEE) / COIN)
 
-        return wallet.create_self_transfer(fee_rate=Decimal(DEFAULT_MIN_RELAY_TX_FEE) / COIN, sequence=self.sequence, utxo_to_spend=utxo_to_spend, confirmed_only=True)
+        return wallet.create_self_transfer(fee_rate=Decimal(DEFAULT_MIN_RELAY_TX_FEE) / COIN, target_vsize=2000, sequence=self.sequence, utxo_to_spend=utxo_to_spend, confirmed_only=True)
 
     @cleanup
     def test_basic_child_then_parent(self):
@@ -246,7 +249,7 @@ class PackageRelayTest(CronCoinTestFramework):
         coin = low_fee_parent["new_utxo"]
         address = node.get_deterministic_priv_key().address
         # Create raw transaction spending the parent, but with no signature (a consensus error).
-        hex_orphan_no_sig = node.createrawtransaction([{"txid": coin["txid"], "vout": coin["vout"]}], {address : coin["value"] - Decimal("0.0001")})
+        hex_orphan_no_sig = node.createrawtransaction([{"txid": coin["txid"], "vout": coin["vout"]}], {address : coin["value"] - Decimal("10")})
         tx_orphan_bad_wit = tx_from_hex(hex_orphan_no_sig)
         tx_orphan_bad_wit.wit.vtxinwit.append(CTxInWitness())
         tx_orphan_bad_wit.wit.vtxinwit[0].scriptWitness.stack = [b'garbage']
@@ -462,10 +465,13 @@ class PackageRelayTest(CronCoinTestFramework):
 
         self.log.info("Send an orphan from a non-DoSy peer. Its orphan should not be evicted.")
         low_fee_parent = self.create_tx_below_mempoolminfee(self.wallet)
+        # CronCoin: With COIN=1000, target_vsize=100000 gives weight ~400,000 WU, nearly
+        # equal to DEFAULT_RESERVED_ORPHAN_WEIGHT_PER_PEER (404,000). This gives peer_normal
+        # a DoS score of 0.99, making its orphan vulnerable to eviction. Use a smaller tx.
         high_fee_child = self.wallet.create_self_transfer(
             utxo_to_spend=low_fee_parent["new_utxo"],
             fee_rate=200*FEERATE_1SAT_VB,
-            target_vsize=100000
+            target_vsize=20000
         )
 
         # Announce

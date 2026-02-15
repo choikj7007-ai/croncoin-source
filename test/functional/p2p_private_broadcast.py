@@ -323,7 +323,7 @@ class P2PPrivateBroadcast(CronCoinTestFramework):
         self.log.info(f"Created txid={txs[0]['txid']}: for basic test")
         self.log.info(f"Created txid={txs[1]['txid']}: for broadcast with dependency in mempool + rebroadcast")
         self.log.info(f"Created txid={txs[2]['txid']}: for broadcast with dependency not in mempool")
-        tx_originator.sendrawtransaction(hexstring=txs[0]["hex"], maxfeerate=0.1)
+        tx_originator.sendrawtransaction(hexstring=txs[0]["hex"], maxfeerate=100)
 
         self.log.debug(f"Waiting for outbound connection i={NUM_INITIAL_CONNECTIONS}, "
                        "must be the first private broadcast connection")
@@ -345,7 +345,7 @@ class P2PPrivateBroadcast(CronCoinTestFramework):
         assert_raises_rpc_error(-26, "mempool-script-verify-flag-failed",
                                 tx_originator.sendrawtransaction,
                                 hexstring=malleated_invalid.serialize_with_witness().hex(),
-                                maxfeerate=0.1)
+                                maxfeerate=100)
 
         self.log.info("Checking that the transaction is not in the originator node's mempool")
         assert_equal(len(tx_originator.getrawmempool()), 0)
@@ -373,13 +373,13 @@ class P2PPrivateBroadcast(CronCoinTestFramework):
 
         self.log.info("Sending a transaction with a dependency in the mempool")
         skip_destinations = len(self.destinations)
-        tx_originator.sendrawtransaction(hexstring=txs[1]["hex"], maxfeerate=0.1)
+        tx_originator.sendrawtransaction(hexstring=txs[1]["hex"], maxfeerate=100)
         self.check_broadcasts("Dependency in mempool", txs[1], NUM_PRIVATE_BROADCAST_PER_TX, skip_destinations)
 
         self.log.info("Sending a transaction with a dependency not in the mempool (should be rejected)")
         assert_equal(len(tx_originator.getrawmempool()), 1)
         assert_raises_rpc_error(-25, "bad-txns-inputs-missingorspent",
-                                tx_originator.sendrawtransaction, hexstring=txs[2]["hex"], maxfeerate=0.1)
+                                tx_originator.sendrawtransaction, hexstring=txs[2]["hex"], maxfeerate=100)
         assert_raises_rpc_error(-25, "bad-txns-inputs-missingorspent",
                                 tx_originator.sendrawtransaction, hexstring=txs[2]["hex"], maxfeerate=0)
 
@@ -413,9 +413,9 @@ class P2PPrivateBroadcast(CronCoinTestFramework):
         tx_returner.send_without_ping(msg_tx(siblings_parent))
         self.wait_until(lambda: len(tx_originator.getrawmempool()) > 1)
         self.log.info("  - siblings' parent added to the mempool")
-        tx_originator.sendrawtransaction(hexstring=sibling1.serialize_with_witness().hex(), maxfeerate=0.1)
+        tx_originator.sendrawtransaction(hexstring=sibling1.serialize_with_witness().hex(), maxfeerate=100)
         self.log.info("  - sent sibling1: ok")
-        tx_originator.sendrawtransaction(hexstring=sibling2.serialize_with_witness().hex(), maxfeerate=0.1)
+        tx_originator.sendrawtransaction(hexstring=sibling2.serialize_with_witness().hex(), maxfeerate=100)
         self.log.info("  - sent sibling2: ok")
 
         # Stop the SOCKS5 proxy server to avoid it being upset by the croncoin
@@ -435,7 +435,7 @@ class P2PPrivateBroadcast(CronCoinTestFramework):
             "-listenonion",
         ])
         assert_raises_rpc_error(-1, "none of the Tor or I2P networks is reachable",
-                                tx_originator.sendrawtransaction, hexstring=txs[0]["hex"], maxfeerate=0.1)
+                                tx_originator.sendrawtransaction, hexstring=txs[0]["hex"], maxfeerate=100)
 
 
 if __name__ == "__main__":

@@ -522,7 +522,7 @@ class MempoolTRUC(CronCoinTestFramework):
 
         self.log.info("Test tx must meet absolute fee rules to evict sibling")
         tx_v3_child_2_rule4 = self.wallet.create_self_transfer(
-            utxo_to_spend=tx_v3_parent["new_utxos"][1], fee_rate=2 * DEFAULT_FEE + Decimal("0.00000001"), version=3
+            utxo_to_spend=tx_v3_parent["new_utxos"][1], fee_rate=2 * DEFAULT_FEE + Decimal("0.001"), version=3
         )
         rule4_str = f"insufficient fee (including sibling eviction), rejecting replacement {tx_v3_child_2_rule4['txid']}, not enough additional fees to relay"
         assert_raises_rpc_error(-26, rule4_str, node.sendrawtransaction, tx_v3_child_2_rule4["hex"])
@@ -617,7 +617,7 @@ class MempoolTRUC(CronCoinTestFramework):
         for minrelay_setting in (0, 5, 10, 100, 500, 1000, 5000, 333333, 2500000):
             self.log.info(f"-> Test -minrelaytxfee={minrelay_setting}sat/kvB...")
             setting_decimal = minrelay_setting / Decimal(COIN)
-            self.restart_node(0, extra_args=[f"-minrelaytxfee={setting_decimal:.8f}", "-persistmempool=0"])
+            self.restart_node(0, extra_args=[f"-minrelaytxfee={setting_decimal:.3f}", "-persistmempool=0"])
             minrelayfeerate = node.getmempoolinfo()["minrelaytxfee"]
             high_feerate = minrelayfeerate * 50
 

@@ -79,7 +79,7 @@ class RejectLowDifficultyHeadersTest(CronCoinTestFramework):
             assert len(chaintips) == 1
             assert {
                 'height': 0,
-                'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+                'hash': '0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5',
                 'branchlen': 0,
                 'status': 'active',
             } in chaintips
@@ -91,7 +91,7 @@ class RejectLowDifficultyHeadersTest(CronCoinTestFramework):
 
         assert {
             'height': 0,
-            'hash': '0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206',
+            'hash': '0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5',
             'branchlen': 0,
             'status': 'active',
         } in self.nodes[2].getchaintips()

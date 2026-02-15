@@ -182,7 +182,7 @@ def compute_taproot_address(pubkey, scripts):
     return output_key_to_p2tr(taproot_construct(pubkey, scripts).output_pubkey)
 
 def compute_raw_taproot_address(pubkey):
-    return encode_segwit_address("bcrt", 1, pubkey)
+    return encode_segwit_address("crnrt", 1, pubkey)
 
 class WalletTaprootTest(CronCoinTestFramework):
     """Test generation and spending of P2TR address outputs."""
@@ -288,19 +288,20 @@ class WalletTaprootTest(CronCoinTestFramework):
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)
-            boring_balance = int(self.boring.getbalance() * 100000000)
-            to_amnt = random.randrange(1000000, boring_balance)
-            self.boring.sendtoaddress(address=addr_g, amount=Decimal(to_amnt) / 100000000, subtractfeefromamount=True)
+            boring_balance = int(self.boring.getbalance() * 1000)
+            to_amnt = random.randrange(100000, boring_balance)
+            self.boring.sendtoaddress(address=addr_g, amount=Decimal(to_amnt) / 1000, subtractfeefromamount=True)
             self.generatetoaddress(self.nodes[0], 1, self.boring.getnewaddress(), sync_fun=self.no_op)
-            test_balance = int(rpc_online.getbalance() * 100000000)
-            ret_amnt = random.randrange(100000, test_balance)
+            test_balance = int(rpc_online.getbalance() * 1000)
+            ret_amnt = random.randrange(10000, test_balance)
             # Increase fee_rate to compensate for the wallet's inability to estimate fees for script path spends.
-            res = rpc_online.sendtoaddress(address=self.boring.getnewaddress(), amount=Decimal(ret_amnt) / 100000000, subtractfeefromamount=True, fee_rate=200)
+            # Use fee_rate=10 (cros/vB) to stay below DEFAULT_MAX_RAW_TX_FEE_RATE with COIN=1000.
+            res = rpc_online.sendtoaddress(address=self.boring.getnewaddress(), amount=Decimal(ret_amnt) / 1000, subtractfeefromamount=True, fee_rate=10)
             self.generatetoaddress(self.nodes[0], 1, self.boring.getnewaddress(), sync_fun=self.no_op)
             assert rpc_online.gettransaction(res)["confirmations"] > 0
 
         # Cleanup
-        txid = rpc_online.sendall(recipients=[self.boring.getnewaddress()])["txid"]
+        txid = rpc_online.sendall(recipients=[self.boring.getnewaddress()], fee_rate=10)["txid"]
         self.generatetoaddress(self.nodes[0], 1, self.boring.getnewaddress(), sync_fun=self.no_op)
         assert rpc_online.gettransaction(txid)["confirmations"] > 0
         rpc_online.unloadwallet()
@@ -340,14 +341,15 @@ class WalletTaprootTest(CronCoinTestFramework):
             if treefn is not None:
                 addr_r = self.make_addr(treefn, keys_pay, i)
                 assert_equal(addr_g, addr_r)
-            boring_balance = int(self.boring.getbalance() * 100000000)
-            to_amnt = random.randrange(1000000, boring_balance)
-            self.boring.sendtoaddress(address=addr_g, amount=Decimal(to_amnt) / 100000000, subtractfeefromamount=True)
+            boring_balance = int(self.boring.getbalance() * 1000)
+            to_amnt = random.randrange(100000, boring_balance)
+            self.boring.sendtoaddress(address=addr_g, amount=Decimal(to_amnt) / 1000, subtractfeefromamount=True)
             self.generatetoaddress(self.nodes[0], 1, self.boring.getnewaddress(), sync_fun=self.no_op)
-            test_balance = int(psbt_online.getbalance() * 100000000)
-            ret_amnt = random.randrange(100000, test_balance)
+            test_balance = int(psbt_online.getbalance() * 1000)
+            ret_amnt = random.randrange(10000, test_balance)
             # Increase fee_rate to compensate for the wallet's inability to estimate fees for script path spends.
-            psbt = psbt_online.walletcreatefundedpsbt([], [{self.boring.getnewaddress(): Decimal(ret_amnt) / 100000000}], None, {"subtractFeeFromOutputs":[0], "fee_rate": 200, "change_type": address_type})['psbt']
+            # Use fee_rate=10 (cros/vB) to stay below DEFAULT_MAX_RAW_TX_FEE_RATE with COIN=1000.
+            psbt = psbt_online.walletcreatefundedpsbt([], [{self.boring.getnewaddress(): Decimal(ret_amnt) / 1000}], None, {"subtractFeeFromOutputs":[0], "fee_rate": 10, "change_type": address_type})['psbt']
             res = psbt_offline.walletprocesspsbt(psbt=psbt, finalize=False)
             for wallet in [psbt_offline, key_only_wallet]:
                 res = wallet.walletprocesspsbt(psbt=psbt, finalize=False)
@@ -373,7 +375,7 @@ class WalletTaprootTest(CronCoinTestFramework):
             assert psbt_online.gettransaction(txid)['confirmations'] > 0
 
         # Cleanup
-        psbt = psbt_online.sendall(recipients=[self.boring.getnewaddress()], psbt=True)["psbt"]
+        psbt = psbt_online.sendall(recipients=[self.boring.getnewaddress()], fee_rate=10, psbt=True)["psbt"]
         res = psbt_offline.walletprocesspsbt(psbt=psbt, finalize=False)
         rawtx = self.nodes[0].finalizepsbt(res['psbt'])['hex']
         txid = self.nodes[0].sendrawtransaction(rawtx)

@@ -109,11 +109,11 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         txid_in_block = self.wallet.sendrawtransaction(from_node=node, tx_hex=raw_tx_in_block)
         self.generate(node, 1)
         self.mempool_size = 0
-        # Also check feerate. 1BTC/kvB fails
-        assert_raises_rpc_error(-8, "Fee rates larger than or equal to 1BTC/kvB are not accepted", lambda: self.check_mempool_result(
+        # Also check feerate. 1000CRN/kvB fails
+        assert_raises_rpc_error(-8, "Fee rates larger than or equal to 1000CRN/kvB are not accepted", lambda: self.check_mempool_result(
             result_expected=None,
             rawtxs=[raw_tx_in_block],
-            maxfeerate=1,
+            maxfeerate=1000,
         ))
         # Check negative feerate
         assert_raises_rpc_error(-3, "Amount out of range", lambda: self.check_mempool_result(
@@ -121,16 +121,16 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
             rawtxs=[raw_tx_in_block],
             maxfeerate=-0.01,
         ))
-        # ... 0.99 passes
+        # ... 999 passes
         self.check_mempool_result(
             result_expected=[{'txid': txid_in_block, 'allowed': False, 'reject-reason': 'txn-already-known'}],
             rawtxs=[raw_tx_in_block],
-            maxfeerate=0.99,
+            maxfeerate=999,
         )
 
         self.log.info('A transaction not in the mempool')
-        fee = Decimal('0.000007')
-        utxo_to_spend = self.wallet.get_utxo(txid=txid_in_block)  # use 0.3 BTC UTXO
+        fee = Decimal('0.007')
+        utxo_to_spend = self.wallet.get_utxo(txid=txid_in_block)  # use 0.3 CRN UTXO
         tx = self.wallet.create_self_transfer(utxo_to_spend=utxo_to_spend, sequence=MAX_BIP125_RBF_SEQUENCE)['tx']
         tx.vout[0].nValue = int((Decimal('0.3') - fee) * COIN)
         raw_tx_0 = tx.serialize().hex()
@@ -149,7 +149,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         tx.vout[0].nValue = int(output_amount * COIN)
         raw_tx_final = tx.serialize().hex()
         tx = tx_from_hex(raw_tx_final)
-        fee_expected = Decimal('50.0') - output_amount
+        fee_expected = Decimal('500000.0') - output_amount
         self.check_mempool_result(
             result_expected=[{'txid': tx.txid_hex, 'allowed': True, 'vsize': tx.get_vsize(), 'fees': {'base': fee_expected}}],
             rawtxs=[tx.serialize().hex()],
@@ -324,7 +324,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
             rawtxs=[tx.serialize().hex()],
         )
         tx = tx_from_hex(raw_tx_reference)
-        output_p2sh_burn = CTxOut(nValue=540, scriptPubKey=script_to_p2sh_script(b'burn'))
+        output_p2sh_burn = CTxOut(nValue=1, scriptPubKey=script_to_p2sh_script(b'burn'))
         num_scripts = 100000 // len(output_p2sh_burn.serialize())  # Use enough outputs to make the tx too large for our policy
         tx.vout = [output_p2sh_burn] * num_scripts
         self.check_mempool_result(
@@ -351,7 +351,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         # are standard since v30
         tx = tx_from_hex(raw_tx_reference)
         tx.vout.append(CTxOut(0, CScript([OP_RETURN, b'\xff'])))
-        tx.vout.append(CTxOut(0, CScript([OP_RETURN, b'\xff' * 50000])))
+        tx.vout.append(CTxOut(0, CScript([OP_RETURN, b'\xff' * 1000])))
 
         self.check_mempool_result(
             result_expected=[{'txid': tx.txid_hex, 'allowed': True, 'vsize': tx.get_vsize(), 'fees': {'base': Decimal('0.05')}}],
@@ -366,18 +366,19 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         tx.vout[0].scriptPubKey = CScript([OP_RETURN, b'\xff'])
         tx.vout = [tx.vout[0]] * op_return_count
         self.check_mempool_result(
-            result_expected=[{"txid": tx.txid_hex, "allowed": True, "vsize": tx.get_vsize(), "fees": {"base": Decimal("0.05000026")}}],
+            result_expected=[{"txid": tx.txid_hex, "allowed": True, "vsize": tx.get_vsize(), "fees": {"base": Decimal("0.058")}}],
             rawtxs=[tx.serialize().hex()],
         )
 
         self.log.info("A transaction with an OP_RETURN output that bumps into the max standardness tx size.")
         tx = tx_from_hex(raw_tx_reference)
+        tx.vout[0].nValue = 0  # All input as fee to cover min relay fee for this large tx
         tx.vout[0].scriptPubKey = CScript([OP_RETURN])
         data_len = int(MAX_STANDARD_TX_WEIGHT / 4) - tx.get_vsize() - 5 - 4  # -5 for PUSHDATA4 and -4 for script size
         tx.vout[0].scriptPubKey = CScript([OP_RETURN, b"\xff" * (data_len)])
         assert_equal(tx.get_vsize(), int(MAX_STANDARD_TX_WEIGHT / 4))
         self.check_mempool_result(
-            result_expected=[{"txid": tx.txid_hex, "allowed": True, "vsize": tx.get_vsize(), "fees": {"base": Decimal("0.1") - Decimal("0.05")}}],
+            result_expected=[{"txid": tx.txid_hex, "allowed": True, "vsize": tx.get_vsize(), "fees": {"base": Decimal("0.1")}}],
             rawtxs=[tx.serialize().hex()],
         )
         tx.vout[0].scriptPubKey = CScript([OP_RETURN, b"\xff" * (data_len + 1)])
@@ -430,7 +431,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         tx.vout[0] = CTxOut(COIN - 1000, DUMMY_MIN_OP_RETURN_SCRIPT)
         assert_equal(len(tx.serialize_without_witness()), MIN_STANDARD_TX_NONWITNESS_SIZE)
         self.check_mempool_result(
-            result_expected=[{'txid': tx.txid_hex, 'allowed': True, 'vsize': tx.get_vsize(), 'fees': { 'base': Decimal('0.00001000')}}],
+            result_expected=[{'txid': tx.txid_hex, 'allowed': True, 'vsize': tx.get_vsize(), 'fees': { 'base': Decimal('1')}}],
             rawtxs=[tx.serialize().hex()],
             maxfeerate=0,
         )
@@ -468,7 +469,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         assert_equal(anchor_spend.txid_hex, anchor_spend.wtxid_hex)
 
         self.check_mempool_result(
-            result_expected=[{'txid': anchor_spend.txid_hex, 'allowed': True, 'vsize': anchor_spend.get_vsize(), 'fees': { 'base': Decimal('0.00000700')}}],
+            result_expected=[{'txid': anchor_spend.txid_hex, 'allowed': True, 'vsize': anchor_spend.get_vsize(), 'fees': { 'base': Decimal('0.007')}}],
             rawtxs=[anchor_spend.serialize().hex()],
             maxfeerate=0,
         )
@@ -503,7 +504,7 @@ class MempoolAcceptanceTest(CronCoinTestFramework):
         sign_input_legacy(tx_spend, 0, tx.vout[0].scriptPubKey, privkey, sighash_type=SIGHASH_ALL)
         tx_spend.vin[0].scriptSig = bytes(CScript([OP_0])) + tx_spend.vin[0].scriptSig
         self.check_mempool_result(
-            result_expected=[{'txid': tx_spend.txid_hex, 'allowed': True, 'vsize': tx_spend.get_vsize(), 'fees': { 'base': Decimal('0.00000700')}}],
+            result_expected=[{'txid': tx_spend.txid_hex, 'allowed': True, 'vsize': tx_spend.get_vsize(), 'fees': { 'base': Decimal('0.007')}}],
             rawtxs=[tx_spend.serialize().hex()],
             maxfeerate=0,
         )

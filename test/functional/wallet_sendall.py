@@ -97,13 +97,18 @@ class SendallTest(CronCoinTestFramework):
         pre_sendall_balance = self.add_utxos([1, 2, 3, 15])
         tx_from_wallet = self.test_sendall_success([self.remainder_target, self.split_target])
 
-        half = (pre_sendall_balance + tx_from_wallet["fee"]) / 2
-        self.assert_tx_has_outputs(tx_from_wallet,
-            expected_outputs = [
-                { "address": self.split_target, "value": half },
-                { "address": self.remainder_target, "value": half }
-            ]
-        )
+        total = pre_sendall_balance + tx_from_wallet["fee"]
+        # With COIN=1000 (3 decimal places), an odd total in cros can't be split
+        # exactly in half, so the wallet rounds one output down and the other up.
+        half_floor = (total / 2).quantize(Decimal("0.001"), rounding="ROUND_DOWN")
+        half_ceil = total - half_floor
+        outputs = {o["scriptPubKey"]["address"]: o["value"] for o in tx_from_wallet["decoded"]["vout"]}
+        assert_equal(len(outputs), 2)
+        assert self.split_target in outputs
+        assert self.remainder_target in outputs
+        assert outputs[self.split_target] + outputs[self.remainder_target] == total
+        for v in outputs.values():
+            assert v >= half_floor and v <= half_ceil
         self.assert_balance_swept_completely(tx_from_wallet, pre_sendall_balance)
 
     @cleanup
@@ -157,12 +162,9 @@ class SendallTest(CronCoinTestFramework):
                 [{self.recipient: pre_sendall_balance + 1}, self.remainder_target])
         assert_raises_rpc_error(-6, "Insufficient funds for fees after creating specified outputs.", self.wallet.sendall,
                 [{self.recipient: pre_sendall_balance}, self.remainder_target])
-        assert_raises_rpc_error(-8, "Specified output amount to {} is below dust threshold".format(self.recipient),
-                self.wallet.sendall, [{self.recipient: 0.00000001}, self.remainder_target])
-        assert_raises_rpc_error(-6, "Dynamically assigned remainder results in dust output.", self.wallet.sendall,
-                [{self.recipient: pre_sendall_balance - fee}, self.remainder_target])
-        assert_raises_rpc_error(-6, "Dynamically assigned remainder results in dust output.", self.wallet.sendall,
-                [{self.recipient: pre_sendall_balance - fee - Decimal(0.00000010)}, self.remainder_target])
+        # With COIN=1000, the dust threshold is 0 cros (DUST_RELAY_TX_FEE * output_size / 1000
+        # truncates to 0 for all standard output types), so the minimum amount (1 cro = 0.001 CRN)
+        # is not considered dust. Skip all dust-related assertions.
 
     # @cleanup not needed because different wallet used
     def sendall_negative_effective_value(self):
@@ -171,29 +173,29 @@ class SendallTest(CronCoinTestFramework):
         self.nodes[0].createwallet("dustwallet")
         dust_wallet = self.nodes[0].get_wallet_rpc("dustwallet")
 
-        self.def_wallet.sendtoaddress(dust_wallet.getnewaddress(), 0.00000400)
-        self.def_wallet.sendtoaddress(dust_wallet.getnewaddress(), 0.00000300)
+        self.def_wallet.sendtoaddress(dust_wallet.getnewaddress(), 0.4)
+        self.def_wallet.sendtoaddress(dust_wallet.getnewaddress(), 0.3)
         self.generate(self.nodes[0], 1)
         assert_greater_than(dust_wallet.getbalances()["mine"]["trusted"], 0)
 
         assert_raises_rpc_error(-6, "Total value of UTXO pool too low to pay for transaction."
                 + " Try using lower feerate or excluding uneconomic UTXOs with 'send_max' option.",
-                dust_wallet.sendall, recipients=[self.remainder_target], fee_rate=300)
+                dust_wallet.sendall, recipients=[self.remainder_target], fee_rate=7)
 
         dust_wallet.unloadwallet()
 
     @cleanup
     def sendall_with_send_max(self):
         self.log.info("Check that `send_max` option causes negative value UTXOs to be left behind")
-        self.add_utxos([0.00000400, 0.00000300, 1])
+        self.add_utxos([0.4, 0.3, 1])
 
         # sendall with send_max
-        sendall_tx_receipt = self.wallet.sendall(recipients=[self.remainder_target], fee_rate=300, send_max=True)
+        sendall_tx_receipt = self.wallet.sendall(recipients=[self.remainder_target], fee_rate=7, send_max=True)
         tx_from_wallet = self.wallet.gettransaction(txid = sendall_tx_receipt["txid"], verbose = True)
 
         assert_equal(len(tx_from_wallet["decoded"]["vin"]), 1)
         self.assert_tx_has_outputs(tx_from_wallet, [{"address": self.remainder_target, "value": 1 + tx_from_wallet["fee"]}])
-        assert_equal(self.wallet.getbalances()["mine"]["trusted"], Decimal("0.00000700"))
+        assert_equal(self.wallet.getbalances()["mine"]["trusted"], Decimal("0.7"))
 
         self.def_wallet.sendtoaddress(self.wallet.getnewaddress(), 1)
         self.generate(self.nodes[0], 1)
@@ -285,8 +287,9 @@ class SendallTest(CronCoinTestFramework):
     @cleanup
     def sendall_fails_on_low_fee(self):
         self.log.info("Test sendall fails if the transaction fee is lower than the minimum fee rate setting")
-        assert_raises_rpc_error(-8, "Fee rate (0.999 sat/vB) is lower than the minimum fee rate setting (1.000 sat/vB)",
-        self.wallet.sendall, recipients=[self.recipient], fee_rate=0.999)
+        self.add_utxos([21])
+        assert_raises_rpc_error(-8, "Fee rate (0.000 cro/vB) is lower than the minimum fee rate setting (0.001 cro/vB)",
+        self.wallet.sendall, recipients=[self.recipient], fee_rate=0)
 
     @cleanup
     def sendall_watchonly_specific_inputs(self):
@@ -345,13 +348,13 @@ class SendallTest(CronCoinTestFramework):
             options={"minconf": 7})
 
         self.log.info("Test sendall only spends utxos with a specified number of confirmations when minconf is used")
-        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=300, options={"minconf": 6})
+        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=7, options={"minconf": 6})
 
         assert_equal(len(self.wallet.listunspent()), 1)
         assert_equal(self.wallet.listunspent()[0]['confirmations'], 3)
 
         # decrease minconf and show the remaining utxo is picked up
-        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=300, options={"minconf": 3})
+        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=7, options={"minconf": 3})
         assert_equal(self.wallet.getbalance(), 0)
 
     @cleanup
@@ -370,7 +373,7 @@ class SendallTest(CronCoinTestFramework):
             options={"maxconf": 1})
 
         self.log.info("Test sendall only spends utxos with a specified number of confirmations when maxconf is used")
-        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=300, options={"maxconf":4})
+        self.wallet.sendall(recipients=[self.remainder_target], fee_rate=7, options={"maxconf":4})
         assert_equal(len(self.wallet.listunspent()), 1)
         assert_equal(self.wallet.listunspent()[0]['confirmations'], 6)
 
@@ -462,7 +465,7 @@ class SendallTest(CronCoinTestFramework):
         self.wallet.keypoolrefill(1600)
 
         # create many inputs
-        outputs = {self.wallet.getnewaddress(): 0.000025 for _ in range(1600)}
+        outputs = {self.wallet.getnewaddress(): 2.5 for _ in range(1600)}
         self.def_wallet.sendmany(amounts=outputs)
         self.generate(self.nodes[0], 1)
 

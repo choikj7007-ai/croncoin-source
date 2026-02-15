@@ -521,6 +521,18 @@ public:
                 .m_chain_tx_count = 111,
                 .blockhash = uint256{"0fa6c3b62a57f817302bdf895b69cd37f548786cdf158cdf0afbab4ffebb3e4b"},
             },
+            {
+                .height = 200,
+                .hash_serialized = AssumeutxoHash{uint256{"7d11f0ff6313e079fc6ab783230730f1f36e534b65032483d30a432e121157a7"}},
+                .m_chain_tx_count = 202,
+                .blockhash = uint256{"1c47f7177faed63905462dd8748c22bd59862f8dead149190e40afa56208b380"},
+            },
+            {
+                .height = 299,
+                .hash_serialized = AssumeutxoHash{uint256{"c241781ebc737342de8555d30dd31cbaa994afd427a2ce44332d63cca2122dd5"}},
+                .m_chain_tx_count = 334,
+                .blockhash = uint256{"5f43f5d3cdc71a3cba73e2d8b7d638f4dbeb3ed8eac268f85fe7074a55cd8bb4"},
+            },
         };
 
         chainTxData = ChainTxData{

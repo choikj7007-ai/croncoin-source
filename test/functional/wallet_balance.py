@@ -80,20 +80,20 @@ class WalletTest(CronCoinTestFramework):
         assert_equal(len(self.nodes[0].listunspent(query_options={'include_immature_coinbase': True})), 1)
 
         self.log.info("Test getbalance with different arguments")
-        assert_equal(self.nodes[0].getbalance("*"), 50)
-        assert_equal(self.nodes[0].getbalance("*", 1), 50)
-        assert_equal(self.nodes[0].getbalance(minconf=1), 50)
-        assert_equal(self.nodes[0].getbalance(minconf=0), 50)
-        assert_equal(self.nodes[0].getbalance("*", 1, True), 50)
-        assert_equal(self.nodes[1].getbalance(minconf=0), 50)
+        assert_equal(self.nodes[0].getbalance("*"), 500000)
+        assert_equal(self.nodes[0].getbalance("*", 1), 500000)
+        assert_equal(self.nodes[0].getbalance(minconf=1), 500000)
+        assert_equal(self.nodes[0].getbalance(minconf=0), 500000)
+        assert_equal(self.nodes[0].getbalance("*", 1, True), 500000)
+        assert_equal(self.nodes[1].getbalance(minconf=0), 500000)
 
-        # Send 40 BTC from 0 to 1 and 60 BTC from 1 to 0.
-        txs = create_transactions(self.nodes[0], self.nodes[1].getnewaddress(), 40, [Decimal('0.01')])
+        # Send 400000 CRN from 0 to 1 and 600000 CRN from 1 to 0.
+        txs = create_transactions(self.nodes[0], self.nodes[1].getnewaddress(), 400000, [Decimal('0.01')])
         self.nodes[0].sendrawtransaction(txs[0]['hex'])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])  # sending on both nodes is faster than waiting for propagation
 
         self.sync_all()
-        txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), 60, [Decimal('0.01'), Decimal('0.02')])
+        txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), 600000, [Decimal('0.01'), Decimal('0.02')])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])
         self.nodes[0].sendrawtransaction(txs[0]['hex'])  # sending on both nodes is faster than waiting for propagation
         self.sync_all()
@@ -143,12 +143,12 @@ class WalletTest(CronCoinTestFramework):
 
         def test_balances(*, fee_node_1=0):
             # getbalances
-            expected_balances_0 = {'mine':      {'immature':          Decimal('0E-8'),
-                                                 'trusted':           Decimal('9.99'),  # change from node 0's send
-                                                 'untrusted_pending': Decimal('60.0')}}
-            expected_balances_1 = {'mine':      {'immature':          Decimal('0E-8'),
-                                                 'trusted':           Decimal('0E-8'),  # node 1's send had an unsafe input
-                                                 'untrusted_pending': Decimal('30.0') - fee_node_1}}  # Doesn't include output of node 0's send since it was spent
+            expected_balances_0 = {'mine':      {'immature':          Decimal('0E-3'),
+                                                 'trusted':           Decimal('99999.99'),  # change from node 0's send
+                                                 'untrusted_pending': Decimal('600000.0')}}
+            expected_balances_1 = {'mine':      {'immature':          Decimal('0E-3'),
+                                                 'trusted':           Decimal('0E-3'),  # node 1's send had an unsafe input
+                                                 'untrusted_pending': Decimal('300000.0') - fee_node_1}}  # Doesn't include output of node 0's send since it was spent
             balances_0 = self.nodes[0].getbalances()
             balances_1 = self.nodes[1].getbalances()
             # remove lastprocessedblock keys (they will be tested later)
@@ -157,10 +157,10 @@ class WalletTest(CronCoinTestFramework):
             assert_equal(balances_0, expected_balances_0)
             assert_equal(balances_1, expected_balances_1)
             # getbalance without any arguments includes unconfirmed transactions, but not untrusted transactions
-            assert_equal(self.nodes[0].getbalance(), Decimal('9.99'))  # change from node 0's send
+            assert_equal(self.nodes[0].getbalance(), Decimal('99999.99'))  # change from node 0's send
             assert_equal(self.nodes[1].getbalance(), Decimal('0'))  # node 1's send had an unsafe input
             # Same with minconf=0
-            assert_equal(self.nodes[0].getbalance(minconf=0), Decimal('9.99'))
+            assert_equal(self.nodes[0].getbalance(minconf=0), Decimal('99999.99'))
             assert_equal(self.nodes[1].getbalance(minconf=0), Decimal('0'))
             # getbalance with a minconf incorrectly excludes coins that have been spent more recently than the minconf blocks ago
             # TODO: fix getbalance tracking of coin spentness depth
@@ -180,15 +180,15 @@ class WalletTest(CronCoinTestFramework):
         self.generatetoaddress(self.nodes[1], 1, ADDRESS_WATCHONLY)
 
         # balances are correct after the transactions are confirmed
-        balance_node0 = Decimal('69.99')  # node 1's send plus change from node 0's send
-        balance_node1 = Decimal('29.98')  # change from node 0's send
+        balance_node0 = Decimal('699999.99')  # node 1's send plus change from node 0's send
+        balance_node1 = Decimal('299999.98')  # change from node 0's send
         assert_equal(self.nodes[0].getbalances()['mine']['trusted'], balance_node0)
         assert_equal(self.nodes[1].getbalances()['mine']['trusted'], balance_node1)
         assert_equal(self.nodes[0].getbalance(), balance_node0)
         assert_equal(self.nodes[1].getbalance(), balance_node1)
 
         # Send total balance away from node 1
-        txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), Decimal('29.97'), [Decimal('0.01')])
+        txs = create_transactions(self.nodes[1], self.nodes[0].getnewaddress(), Decimal('299999.97'), [Decimal('0.01')])
         self.nodes[1].sendrawtransaction(txs[0]['hex'])
         self.generatetoaddress(self.nodes[1], 2, ADDRESS_WATCHONLY)
 
@@ -215,7 +215,7 @@ class WalletTest(CronCoinTestFramework):
         # mempool because it is the third descendant of the tx above
         for _ in range(3):
             # Set amount high enough such that all coins are spent by each tx
-            txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 99)
+            txid = self.nodes[0].sendtoaddress(self.nodes[0].getnewaddress(), 999990)
 
         self.log.info('Check that wallet txs not in the mempool are untrusted')
         assert txid not in self.nodes[0].getrawmempool()
@@ -226,8 +226,8 @@ class WalletTest(CronCoinTestFramework):
         tx_orig = self.nodes[0].gettransaction(txid)['hex']
         # Increase fee by 1 coin
         tx_replace = tx_orig.replace(
-            (99 * 10**8).to_bytes(8, "little", signed=True).hex(),
-            (98 * 10**8).to_bytes(8, "little", signed=True).hex(),
+            (999990 * 10**3).to_bytes(8, "little", signed=True).hex(),
+            (999989 * 10**3).to_bytes(8, "little", signed=True).hex(),
         )
         tx_replace = self.nodes[0].signrawtransactionwithwallet(tx_replace)['hex']
         # Total balance is given by the sum of outputs of the tx

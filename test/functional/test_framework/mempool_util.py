@@ -85,7 +85,7 @@ def fill_mempool(test_framework, node, *, tx_sync_fun=None):
 
     test_framework.log.debug("Create a mempool tx that will be evicted")
     tx_to_be_evicted_id = ephemeral_miniwallet.send_self_transfer(
-        from_node=node, utxo_to_spend=confirmed_utxos.pop(0), fee_rate=minrelayfee)["txid"]
+        from_node=node, utxo_to_spend=confirmed_utxos.pop(0), fee_rate=minrelayfee, target_vsize=2000)["txid"]
 
     def send_batch(fee):
         utxos = confirmed_utxos[:tx_batch_size]

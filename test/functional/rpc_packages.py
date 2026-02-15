@@ -4,7 +4,7 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """RPCs that handle raw transaction packages."""
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 import random
 
 from test_framework.blocktools import COINBASE_MATURITY
@@ -73,7 +73,7 @@ class RPCPackagesTest(CronCoinTestFramework):
         self.independent_txns_hex = []
         self.independent_txns_testres = []
         for _ in range(3):
-            tx_hex = self.wallet.create_self_transfer(fee_rate=Decimal("0.0001"))["hex"]
+            tx_hex = self.wallet.create_self_transfer(fee_rate=Decimal("10"))["hex"]
             testres = self.nodes[0].testmempoolaccept([tx_hex])
             assert testres[0]["allowed"]
             self.independent_txns_hex.append(tx_hex)
@@ -112,7 +112,7 @@ class RPCPackagesTest(CronCoinTestFramework):
 
         self.log.info("Check testmempoolaccept tells us when some transactions completed validation successfully")
         tx_bad_sig_hex = node.createrawtransaction([{"txid": coin["txid"], "vout": coin["vout"]}],
-                                           {address : coin["amount"] - Decimal("0.0001")})
+                                           {address : coin["amount"] - Decimal("10")})
         tx_bad_sig = tx_from_hex(tx_bad_sig_hex)
         testres_bad_sig = node.testmempoolaccept(self.independent_txns_hex + [tx_bad_sig_hex])
         # By the time the signature for the last transaction is checked, all the other transactions
@@ -129,7 +129,7 @@ class RPCPackagesTest(CronCoinTestFramework):
         }])
 
         self.log.info("Check testmempoolaccept reports txns in packages that exceed max feerate")
-        tx_high_fee = self.wallet.create_self_transfer(fee=Decimal("0.999"))
+        tx_high_fee = self.wallet.create_self_transfer(fee=Decimal("11"))
         testres_high_fee = node.testmempoolaccept([tx_high_fee["hex"]])
         assert_equal(testres_high_fee, [
             {"txid": tx_high_fee["txid"], "wtxid": tx_high_fee["wtxid"], "allowed": False, "reject-reason": "max-fee-exceeded"}
@@ -295,7 +295,7 @@ class RPCPackagesTest(CronCoinTestFramework):
         node = self.nodes[0]
 
         coin = self.wallet.get_utxo()
-        fee = Decimal("0.00125000")
+        fee = Decimal("5")
         replaceable_tx = self.wallet.create_self_transfer(utxo_to_spend=coin, sequence=MAX_BIP125_RBF_SEQUENCE, fee = fee)
         testres_replaceable = node.testmempoolaccept([replaceable_tx["hex"]])[0]
         assert_equal(testres_replaceable["txid"], replaceable_tx["txid"])
@@ -356,7 +356,7 @@ class RPCPackagesTest(CronCoinTestFramework):
             if partial_submit and random.choice([True, False]):
                 node.sendrawtransaction(parent_tx["hex"])
                 presubmitted_wtxids.add(parent_tx["wtxid"])
-        child_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[tx["new_utxo"] for tx in package_txns], fee_per_output=10000) #DEFAULT_FEE
+        child_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[tx["new_utxo"] for tx in package_txns], fee_per_output=int(DEFAULT_FEE * COIN))
         package_txns.append(child_tx)
 
         testmempoolaccept_result = node.testmempoolaccept(rawtxs=[tx["hex"] for tx in package_txns])
@@ -438,8 +438,9 @@ class RPCPackagesTest(CronCoinTestFramework):
         self.log.info("Submitpackage maxfeerate arg testing")
         chained_txns = self.wallet.create_self_transfer_chain(chain_length=2)
         minrate_btc_kvb = min([chained_txn["fee"] / chained_txn["tx"].get_vsize() * 1000 for chained_txn in chained_txns])
+        minrate_btc_kvb = minrate_btc_kvb.quantize(Decimal("0.001"), rounding=ROUND_DOWN)
         chain_hex = [t["hex"] for t in chained_txns]
-        pkg_result = node.submitpackage(chain_hex, maxfeerate=minrate_btc_kvb - Decimal("0.00000001"))
+        pkg_result = node.submitpackage(chain_hex, maxfeerate=minrate_btc_kvb - Decimal("0.001"))
 
         # First tx failed in single transaction evaluation, so package message is generic
         assert_equal(pkg_result["package_msg"], "transaction failed")
@@ -458,18 +459,22 @@ class RPCPackagesTest(CronCoinTestFramework):
 
         fill_mempool(self, node)
 
-        minrelay = node.getmempoolinfo()["minrelaytxfee"]
+        # CronCoin: With COIN=1000, a small tx (104 vB) at minrelayfee gets 1 cro fee
+        # via ceildiv, giving effective rate ~9.6 cros/kvB which exceeds mempoolminfee (~6).
+        # Use target_vsize=2000 so the effective rate stays at ~1 cro/kvB (below mempoolminfee).
+        minrelayfee = node.getnetworkinfo()["relayfee"]
         parent = self.wallet.create_self_transfer(
-            fee_rate=minrelay,
+            fee_rate=minrelayfee,
+            target_vsize=2000,
             confirmed_only=True,
         )
 
         child = self.wallet.create_self_transfer(
-            fee_rate=DEFAULT_FEE,
+            fee_rate=DEFAULT_FEE * 5,
             utxo_to_spend=parent["new_utxo"],
         )
 
-        pkg_result = node.submitpackage([parent["hex"], child["hex"]], maxfeerate=DEFAULT_FEE - Decimal("0.00000001"))
+        pkg_result = node.submitpackage([parent["hex"], child["hex"]], maxfeerate=DEFAULT_FEE * 3)
 
         # Child is connected even though parent is invalid and still reports fee exceeded
         # this implies sub-package evaluation of both entries together.
@@ -501,10 +506,13 @@ class RPCPackagesTest(CronCoinTestFramework):
         tx.vout[-1].scriptPubKey = b'a' * 10001 # scriptPubKey bigger than 10k IsUnspendable
         chained_burn_hex = [chained_burn_hex[0], tx.serialize().hex()]
         # burn test is run before any package evaluation; nothing makes it in and we get broader exception
-        assert_raises_rpc_error(-25, "Unspendable output exceeds maximum configured by user", node.submitpackage, chained_burn_hex, 0, chained_txns_burn[1]["new_utxo"]["value"] - Decimal("0.00000001"))
+        assert_raises_rpc_error(-25, "Unspendable output exceeds maximum configured by user", node.submitpackage, chained_burn_hex, 0, chained_txns_burn[1]["new_utxo"]["value"] - Decimal("0.001"))
         assert_equal(node.getrawmempool(), [])
 
         minrate_btc_kvb_burn = min([chained_txn_burn["fee"] / chained_txn_burn["tx"].get_vsize() * 1000 for chained_txn_burn in chained_txns_burn])
+        # CronCoin: With COIN=1000, amounts have at most 3 decimal places.
+        # Round up so maxfeerate >= actual fee rate.
+        minrate_btc_kvb_burn = minrate_btc_kvb_burn.quantize(Decimal("0.001"), rounding=ROUND_UP)
 
         # Relax the restrictions for both and send it; parent gets through as own subpackage
         pkg_result = node.submitpackage(chained_burn_hex, maxfeerate=minrate_btc_kvb_burn, maxburnamount=chained_txns_burn[1]["new_utxo"]["value"])

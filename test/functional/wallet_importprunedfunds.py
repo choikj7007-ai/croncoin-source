@@ -140,7 +140,7 @@ class ImportPrunedFundsTest(CronCoinTestFramework):
         tx1_fee = node.gettransaction(tx1_id)["fee"]
 
         # Create a conflicting tx with a larger fee (tx1_fee is negative)
-        output_value = utxo["amount"] + tx1_fee - Decimal("0.00001")
+        output_value = utxo["amount"] + tx1_fee - Decimal("1")
         raw_tx2 = node.createrawtransaction(inputs=[utxo], outputs=[{addr: output_value}])
         signed_tx2 = node.signrawtransactionwithwallet(raw_tx2)
         tx2_id = node.sendrawtransaction(signed_tx2["hex"])

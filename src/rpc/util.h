@@ -125,7 +125,7 @@ int ParseVerbosity(const UniValue& arg, int default_verbosity, bool allow_bool);
 CAmount AmountFromValue(const UniValue& value, int decimals = 3);
 /**
  * Parse a json number or string, denoting CRN/kvB, into a CFeeRate (cros/kvB).
- * Reject negative values or rates larger than 1CRN/kvB.
+ * Reject negative values or rates larger than 1000CRN/kvB.
  */
 CFeeRate ParseFeeRate(const UniValue& json);
 

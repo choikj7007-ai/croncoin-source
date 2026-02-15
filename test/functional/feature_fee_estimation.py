@@ -43,7 +43,7 @@ def small_txpuzzle_randfee(
     # Total fee ranges from min_fee to min_fee + 127*fee_increment
     fee = min_fee - fee_increment + satoshi_round(rand_fee, rounding=ROUND_DOWN)
     utxos_to_spend = []
-    total_in = Decimal("0.00000000")
+    total_in = Decimal("0")
     while total_in <= (amount + fee) and len(conflist) > 0:
         t = conflist.pop(0)
         total_in += t["value"]
@@ -164,7 +164,7 @@ class EstimateFeeTest(CronCoinTestFramework):
         # produces too small blocks (room for only 55 or so transactions)
 
     def transact_and_mine(self, numblocks, mining_node):
-        min_fee = Decimal("0.00001")
+        min_fee = Decimal("1")
         # We will now mine numblocks blocks generating on average 100 transactions between each block
         # We shuffle our confirmed txout set before each set of transactions
         # small_txpuzzle_randfee will use the transactions that have inputs already in the chain when possible
@@ -179,7 +179,7 @@ class EstimateFeeTest(CronCoinTestFramework):
                     self.nodes[from_index],
                     self.confutxo,
                     self.memutxo,
-                    Decimal("0.005"),
+                    Decimal("5"),
                     min_fee,
                     min_fee,
                     batch_sendtx_reqs,
@@ -411,8 +411,8 @@ class EstimateFeeTest(CronCoinTestFramework):
         self.generate(miner, 1)
 
     def test_estimation_modes(self):
-        low_feerate = Decimal("0.001")
-        high_feerate = Decimal("0.005")
+        low_feerate = Decimal("1.0")
+        high_feerate = Decimal("5.0")
         tx_count = 24
         # Broadcast and mine high fee transactions for the first 12 blocks.
         for _ in range(12):
@@ -468,7 +468,9 @@ class EstimateFeeTest(CronCoinTestFramework):
         self.clear_estimates()
 
         self.log.info("Testing estimates with RBF.")
-        self.sanity_check_rbf_estimates(self.confutxo + self.memutxo)
+        # Filter out UTXOs too small for the high replacement feerate (10 sat/vb = 1.04 CRN fee)
+        rbf_utxos = [u for u in (self.confutxo + self.memutxo) if u["value"] >= Decimal("2")]
+        self.sanity_check_rbf_estimates(rbf_utxos)
 
         self.clear_estimates()
         self.log.info("Test estimatesmartfee modes")

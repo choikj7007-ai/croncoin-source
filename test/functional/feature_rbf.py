@@ -107,7 +107,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
 
         # This will raise an exception due to insufficient fee
         reject_reason = "insufficient fee"
-        reject_details = f"{reject_reason}, rejecting replacement {tx.txid_hex}, not enough additional fees to relay; 0.00 < 0.00000011"
+        reject_details = f"{reject_reason}, rejecting replacement {tx.txid_hex}, not enough additional fees to relay; 0.00 < 0.001"
         res = self.nodes[0].testmempoolaccept(rawtxs=[tx_hex])[0]
         assert_equal(res["reject-reason"], reject_reason)
         assert_equal(res["reject-details"], reject_details)
@@ -182,7 +182,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
         initial_nValue = 5 * COIN
         tx0_outpoint = self.make_utxo(self.nodes[0], initial_nValue)
 
-        def branch(prevout, initial_value, max_txs, tree_width=5, fee=0.00001 * COIN, _total_txs=None):
+        def branch(prevout, initial_value, max_txs, tree_width=5, fee=1, _total_txs=None):
             if _total_txs is None:
                 _total_txs = [0]
             if _total_txs[0] >= max_txs:
@@ -210,7 +210,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
                                   _total_txs=_total_txs):
                     yield x
 
-        fee = int(0.00001 * COIN)
+        fee = 1  # 1 cro (smallest unit) - must be small enough relative to initial_nValue/tree_width
         n = DEFAULT_CLUSTER_LIMIT
         tree_txs = list(branch(tx0_outpoint, initial_nValue, n, fee=fee))
         assert_equal(len(tree_txs), n)
@@ -254,7 +254,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
             utxos_to_spend=[tx0_outpoint],
             sequence=0,
             num_outputs=100,
-            amount_per_output=1000,
+            amount_per_output=1,
         )["hex"]
 
         # This will raise an exception due to insufficient fee
@@ -333,13 +333,13 @@ class ReplaceByFeeTest(CronCoinTestFramework):
     def test_new_unconfirmed_input_with_low_feerate(self):
         """Replacements that add new unconfirmed inputs are allowed, but must pass the feerate diagram check"""
         confirmed_utxos = [self.make_utxo(self.nodes[0], int(1.1 * COIN)) for _ in range(3)]
-        large_low_feerate = self.wallet.create_self_transfer(utxo_to_spend=confirmed_utxos[0], target_vsize=10000, fee=Decimal("0.00001000"))
+        large_low_feerate = self.wallet.create_self_transfer(utxo_to_spend=confirmed_utxos[0], target_vsize=10000, fee=Decimal("1"))
         self.nodes[0].sendrawtransaction(large_low_feerate['hex'])
         unconfirmed_utxo = large_low_feerate['new_utxo']
 
         # These two transactions are approximately the same size. The replacement tx pays twice the fee.
-        tx_to_replace = self.wallet.create_self_transfer_multi(utxos_to_spend=[confirmed_utxos[1], confirmed_utxos[2]], fee_per_output=2000)
-        tx_replacement = self.wallet.create_self_transfer_multi(utxos_to_spend=[confirmed_utxos[1], unconfirmed_utxo], fee_per_output=4000)
+        tx_to_replace = self.wallet.create_self_transfer_multi(utxos_to_spend=[confirmed_utxos[1], confirmed_utxos[2]], fee_per_output=20)
+        tx_replacement = self.wallet.create_self_transfer_multi(utxos_to_spend=[confirmed_utxos[1], unconfirmed_utxo], fee_per_output=40)
         assert_greater_than(tx_replacement['fee']*tx_to_replace['tx'].get_vsize(), tx_to_replace['fee']*tx_replacement['tx'].get_vsize())
 
         self.nodes[0].sendrawtransaction(tx_to_replace['hex'])
@@ -352,9 +352,9 @@ class ReplaceByFeeTest(CronCoinTestFramework):
         # distinct clusters
 
         # Start by creating a single transaction with many outputs
-        initial_nValue = 10 * COIN
+        initial_nValue = 100 * COIN
         utxo = self.make_utxo(self.nodes[0], initial_nValue)
-        fee = int(0.0001 * COIN)
+        fee = 1
         split_value = int((initial_nValue - fee) / (MAX_REPLACEMENT_LIMIT + 1))
 
         splitting_tx_utxos = self.wallet.send_self_transfer_multi(
@@ -420,7 +420,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
             utxos_to_spend=[tx0_outpoint],
             sequence=0,
             num_outputs=100,
-            amount_per_output=int(0.00001 * COIN),
+            amount_per_output=1,
         )["hex"]
 
         # Verify tx1b cannot replace tx1a.
@@ -489,18 +489,28 @@ class ReplaceByFeeTest(CronCoinTestFramework):
         tx = self.wallet.send_self_transfer(from_node=self.nodes[0])['tx']
 
         # Higher fee, higher feerate, different txid, but the replacement does not provide a relay
-        # fee conforming to node's `incrementalrelayfee` policy of 100 sat per KB.
-        assert_equal(self.nodes[0].getmempoolinfo()["incrementalrelayfee"], Decimal("0.000001"))
-        tx.vout[0].nValue -= 1
-        assert_raises_rpc_error(-26, "insufficient fee", self.nodes[0].sendrawtransaction, tx.serialize().hex())
+        # fee conforming to node's `incrementalrelayfee` policy of 1 cro per kvB.
+        assert_equal(self.nodes[0].getmempoolinfo()["incrementalrelayfee"], Decimal("0.001"))
+        # For a small tx (~110 vB), incremental fee = 1 cro. Adding 1 cro exactly matches it,
+        # so the replacement is accepted. To test failure, we need a tx where GetFee > 1 cro.
+        # Use a 2000+ vB tx where GetFee(2000) = 2 cros, then adding 1 cro is insufficient.
+        tx_large = self.wallet.send_self_transfer(from_node=self.nodes[0], target_vsize=2000)['tx']
+        tx_large.vout[0].nValue -= 1
+        assert_raises_rpc_error(-26, "insufficient fee", self.nodes[0].sendrawtransaction, tx_large.serialize().hex())
 
     def test_incremental_relay_feerates(self):
         self.log.info("Test that incremental relay fee is applied correctly in RBF for various settings...")
         node = self.nodes[0]
+        high_relay_warning = "Warning: -minrelaytxfee is set very high! The wallet will avoid paying less than the minimum relay fee."
+        # HIGH_TX_FEE_PER_KB = COIN / 100; wallet warns when relayMinFee exceeds this
+        high_fee_per_kb = COIN // 100
+        prev_effective_relay_fee = 1  # DEFAULT_MIN_RELAY_TX_FEE
         for incremental_setting in (0, 5, 10, 50, 100, 234, 1000, 5000, 21000):
             incremental_setting_decimal = incremental_setting / Decimal(COIN)
-            self.log.info(f"-> Test -incrementalrelayfee={incremental_setting:.8f}sat/kvB...")
-            self.restart_node(0, extra_args=[f"-incrementalrelayfee={incremental_setting_decimal:.8f}", "-persistmempool=0"])
+            self.log.info(f"-> Test -incrementalrelayfee={incremental_setting}cros/kvB...")
+            expected = high_relay_warning if prev_effective_relay_fee > high_fee_per_kb else ''
+            self.restart_node(0, extra_args=[f"-incrementalrelayfee={incremental_setting_decimal:.3f}", "-persistmempool=0"], expected_stderr=expected)
+            prev_effective_relay_fee = max(incremental_setting, 1)  # relayMinFee = max(incr, default)
 
             # When incremental relay feerate is higher than min relay feerate, min relay feerate is automatically increased.
             min_relay_feerate = node.getmempoolinfo()["minrelaytxfee"]
@@ -518,7 +528,7 @@ class ReplaceByFeeTest(CronCoinTestFramework):
             replacement_required_fee = get_fee(replacement_expected_size, incremental_setting_decimal) + replacee_tx['fee']
 
             # Show that replacement fails when paying 1 satoshi shy of the required fee
-            failed_replacement_tx = self.wallet.create_self_transfer(utxo_to_spend=confirmed_utxo, fee=replacement_required_fee - Decimal("0.00000001"), version=2, target_vsize=200)
+            failed_replacement_tx = self.wallet.create_self_transfer(utxo_to_spend=confirmed_utxo, fee=replacement_required_fee - Decimal("0.001"), version=2, target_vsize=200)
             assert_raises_rpc_error(-26, "insufficient fee", node.sendrawtransaction, failed_replacement_tx['hex'])
             replacement_tx = self.wallet.create_self_transfer(utxo_to_spend=confirmed_utxo, fee=replacement_required_fee, version=2, target_vsize=200)
 
@@ -529,6 +539,10 @@ class ReplaceByFeeTest(CronCoinTestFramework):
                 node.sendrawtransaction(replacement_tx_smaller['hex'])
             else:
                 node.sendrawtransaction(replacement_tx['hex'])
+
+        # Restore default settings; the last iteration used a very high incremental relay fee
+        # which triggers a wallet warning on stderr that must be expected
+        self.restart_node(0, extra_args=["-persistmempool=0"], expected_stderr=high_relay_warning)
 
     def test_fullrbf(self):
         # BIP125 signaling is not respected

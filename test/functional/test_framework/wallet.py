@@ -56,7 +56,7 @@ from test_framework.util import (
 )
 from test_framework.wallet_util import generate_keypair
 
-DEFAULT_FEE = Decimal("0.001")
+DEFAULT_FEE = Decimal("0.01")
 
 class MiniWalletMode(Enum):
     """Determines the transaction type the MiniWallet is creating and spending.
@@ -330,6 +330,10 @@ class MiniWallet:
 
         if target_vsize:
             self._bulk_tx(tx, target_vsize)
+            # For non-segwit (P2PK) txs, SIGHASH_ALL covers all outputs,
+            # so adding OP_RETURN padding invalidates the signature. Re-sign.
+            if self._mode == MiniWalletMode.RAW_P2PK:
+                self.sign_tx(tx)
 
         txid = tx.txid_hex
         return {

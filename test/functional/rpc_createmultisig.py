@@ -103,16 +103,16 @@ class RpcCreateMultiSigTest(CronCoinTestFramework):
         mredeem = msig["redeemScript"]
         assert_equal(desc, msig['descriptor'])
         if output_type == 'bech32':
-            assert madd[0:4] == "bcrt"  # actually a bech32 address
+            assert madd[0:5] == "crnrt"  # actually a bech32 address
 
         spk = address_to_scriptpubkey(madd)
-        value = decimal.Decimal("0.00004000")
+        value = decimal.Decimal("4")
         tx = self.wallet.send_to(from_node=self.nodes[0], scriptPubKey=spk, amount=int(value * COIN))
         prevtxs = [{"txid": tx["txid"], "vout": tx["sent_vout"], "scriptPubKey": spk.hex(), "redeemScript": mredeem, "amount": value}]
 
         self.generate(node0, 1)
 
-        outval = value - decimal.Decimal("0.00002000")  # deduce fee (must be higher than the min relay fee)
+        outval = value - decimal.Decimal("2")  # deduce fee (must be higher than the min relay fee)
         out_addr = getnewdestination('bech32')[2]
         rawtx = node2.createrawtransaction([{"txid": tx["txid"], "vout": tx["sent_vout"]}], [{out_addr: outval}])
 

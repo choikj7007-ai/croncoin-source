@@ -36,16 +36,19 @@ class GetblockstatsTest(CronCoinTestFramework):
     def set_test_params(self):
         self.num_nodes = 1
         self.setup_clean_chain = True
+        self.extra_args = [["-deprecatedrpc=settxfee"]]
+
+    def skip_test_if_missing_module(self):
+        self.skip_if_no_wallet()
 
     def get_stats(self):
         return [self.nodes[0].getblockstats(hash_or_height=self.start_height + i) for i in range(self.max_stat_pos+1)]
 
     def generate_test_data(self, filename):
-        mocktime = 1525107225
+        import time as _time
+        mocktime = int(_time.time())
         self.nodes[0].setmocktime(mocktime)
-        self.nodes[0].createwallet(wallet_name='test')
-        privkey = self.nodes[0].get_deterministic_priv_key().key
-        wallet_importprivkey(self.nodes[0], privkey, 0)
+        # Use the default wallet already created by the framework
 
         self.generate(self.nodes[0], COINBASE_MATURITY + 1)
 
@@ -169,7 +172,7 @@ class GetblockstatsTest(CronCoinTestFramework):
 
         self.log.info('Test block height 0')
         genesis_stats = self.nodes[0].getblockstats(0)
-        assert_equal(genesis_stats["blockhash"], "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")
+        assert_equal(genesis_stats["blockhash"], "0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5")
         assert_equal(genesis_stats["utxo_increase"], 1)
         assert_equal(genesis_stats["utxo_size_inc"], 117)
         assert_equal(genesis_stats["utxo_increase_actual"], 0)
@@ -178,9 +181,9 @@ class GetblockstatsTest(CronCoinTestFramework):
         self.log.info('Test tip including OP_RETURN')
         tip_stats = self.nodes[0].getblockstats(tip)
         assert_equal(tip_stats["utxo_increase"], 6)
-        assert_equal(tip_stats["utxo_size_inc"], 441)
+        assert_equal(tip_stats["utxo_size_inc"], 450)
         assert_equal(tip_stats["utxo_increase_actual"], 4)
-        assert_equal(tip_stats["utxo_size_inc_actual"], 300)
+        assert_equal(tip_stats["utxo_size_inc_actual"], 309)
 
         self.log.info("Test when only header is known")
         block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)

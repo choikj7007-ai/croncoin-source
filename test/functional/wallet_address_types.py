@@ -50,7 +50,7 @@ Test that the nodes generate the correct change address type:
     - node4 always uses p2sh/segwit output for change.
 """
 
-from decimal import Decimal
+from decimal import Decimal, ROUND_DOWN
 import itertools
 
 from test_framework.blocktools import COINBASE_MATURITY
@@ -164,7 +164,7 @@ class AddressTypeTest(CronCoinTestFramework):
         # Use a ridiculously roundabout way to find the key origin info through
         # the PSBT logic. However, this does test consistency between the PSBT reported
         # fingerprints/paths and the descriptor logic.
-        psbt = self.nodes[node].createpsbt([{'txid':utxo['txid'], 'vout':utxo['vout']}],[{address:0.00010000}])
+        psbt = self.nodes[node].createpsbt([{'txid':utxo['txid'], 'vout':utxo['vout']}],[{address:0.1}])
         psbt = self.nodes[node].walletprocesspsbt(psbt, False, "ALL", True)
         decode = self.nodes[node].decodepsbt(psbt['psbt'])
         key_descs = {}
@@ -243,7 +243,7 @@ class AddressTypeTest(CronCoinTestFramework):
             self.log.info("Sending from node {} ({}) with{} multisig using {}".format(from_node, self.extra_args[from_node], "" if multisig else "out", "default" if address_type is None else address_type))
             old_balances = self.get_balances()
             self.log.debug("Old balances are {}".format(old_balances))
-            to_send = (old_balances[from_node] / (COINBASE_MATURITY + 1)).quantize(Decimal("0.00000001"))
+            to_send = (old_balances[from_node] / (COINBASE_MATURITY + 1)).quantize(Decimal("0.001"), rounding=ROUND_DOWN)
             sends = {}
             addresses = {}
 
@@ -307,9 +307,12 @@ class AddressTypeTest(CronCoinTestFramework):
 
             new_balances = self.get_balances()
             self.log.debug("Check new balances: {}".format(new_balances))
-            # We don't know what fee was set, so we can only check bounds on the balance of the sending node
+            # We don't know what fee was set, so we can only check bounds on the balance of the sending node.
+            # With CronCoin's 3-decimal-place precision (COIN=1000), quantizing to_send = old_balance/101
+            # introduces rounding error up to ~0.101 CRN that can exceed the tiny tx fee (~0.001 CRN),
+            # so we add tolerance to the upper bound.
             assert_greater_than(new_balances[from_node], to_send * 10)
-            assert_greater_than(to_send * 11, new_balances[from_node])
+            assert_greater_than(to_send * 11 + Decimal("1"), new_balances[from_node])
             for n, to_node in enumerate(range(from_node + 1, from_node + 4)):
                 to_node %= 4
                 assert_equal(new_balances[to_node], old_balances[to_node] + to_send * 10 * (2 + n))

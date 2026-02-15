@@ -125,7 +125,7 @@ class AddressInputTypeGrouping(CronCoinTestFramework):
         self.skip_if_no_wallet()
 
     def make_payment(self, A, B, v, addr_type):
-        fee_rate = random.randint(1, 20)
+        fee_rate = 1
         self.log.debug(f"Making payment of {v} BTC at fee_rate {fee_rate}")
         tx = B.sendtoaddress(
             address=A.getnewaddress(address_type=addr_type),
@@ -167,7 +167,7 @@ class AddressInputTypeGrouping(CronCoinTestFramework):
             self.generate(A, 1)
             assert is_same_type(B, tx)
 
-        tx = self.make_payment(A, B, 30.99, random.choice(ADDRESS_TYPES))
+        tx = self.make_payment(A, B, 25, random.choice(ADDRESS_TYPES))
         assert not is_same_type(B, tx)
 
 

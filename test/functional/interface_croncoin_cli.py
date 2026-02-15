@@ -20,11 +20,11 @@ from test_framework.util import (
 )
 import time
 
-# The block reward of coinbaseoutput.nValue (50) BTC/block matures after
+# The block reward of coinbaseoutput.nValue (500000) CRN/block matures after
 # COINBASE_MATURITY (100) blocks. Therefore, after mining 101 blocks we expect
-# node 0 to have a balance of (BLOCKS - COINBASE_MATURITY) * 50 BTC/block.
+# node 0 to have a balance of (BLOCKS - COINBASE_MATURITY) * 500000 CRN/block.
 BLOCKS = COINBASE_MATURITY + 1
-BALANCE = (BLOCKS - 100) * 50
+BALANCE = (BLOCKS - 100) * 500000
 
 JSON_PARSING_ERROR = 'error: Error parsing JSON: foo'
 BLOCKS_VALUE_OF_ZERO = 'error: the first argument (number of blocks to generate, default: 1) must be an integer value greater than zero'
@@ -249,13 +249,13 @@ class TestCronCoinCli(CronCoinTestFramework):
             wallet_info = self.nodes[0].getwalletinfo()
             assert_equal(int(cli_get_info['Keypool size']), wallet_info['keypoolsize'])
             assert_equal(int(cli_get_info['Unlocked until']), wallet_info['unlocked_until'])
-            assert_equal(Decimal(cli_get_info['Transaction fee rate (-paytxfee) (BTC/kvB)']), wallet_info['paytxfee'])
-            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (BTC/kvB)']), network_info['relayfee'])
+            assert_equal(Decimal(cli_get_info['Transaction fee rate (-paytxfee) (CRN/kvB)']), wallet_info['paytxfee'])
+            assert_equal(Decimal(cli_get_info['Min tx relay fee rate (CRN/kvB)']), network_info['relayfee'])
             assert_equal(self.nodes[0].cli.getwalletinfo(), wallet_info)
 
             # Setup to test -getinfo, -generate, and -rpcwallet= with multiple wallets.
             wallets = [self.default_wallet_name, 'Encrypted', 'secret']
-            amounts = [BALANCE + Decimal('9.999928'), Decimal(9), Decimal(31)]
+            amounts = [BALANCE + Decimal('499959.998'), Decimal(9), Decimal(31)]
             self.nodes[0].createwallet(wallet_name=wallets[1])
             self.nodes[0].createwallet(wallet_name=wallets[2])
             w1 = self.nodes[0].get_wallet_rpc(wallets[0])

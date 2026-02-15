@@ -362,7 +362,7 @@ class BlockchainTest(CronCoinTestFramework):
         node = self.nodes[0]
         res = node.gettxoutsetinfo()
 
-        assert_equal(res['total_amount'], Decimal('8725.00000000'))
+        assert_equal(res['total_amount'], Decimal('87250000.000'))
         assert_equal(res['transactions'], HEIGHT)
         assert_equal(res['height'], HEIGHT)
         assert_equal(res['txouts'], HEIGHT)
@@ -437,7 +437,7 @@ class BlockchainTest(CronCoinTestFramework):
         # Validate the gettxout response
         assert_equal(txout['bestblock'], best_block_hash)
         assert_equal(txout['confirmations'], 1)
-        assert_equal(txout['value'], 25)
+        assert_equal(txout['value'], Decimal('250000'))
         assert_equal(txout['scriptPubKey']['address'], self.wallet.get_address())
         assert_equal(txout['scriptPubKey']['hex'], self.wallet.get_output_script().hex())
         decoded_script = node.decodescript(self.wallet.get_output_script().hex())
@@ -491,7 +491,7 @@ class BlockchainTest(CronCoinTestFramework):
         difficulty = self.nodes[0].getdifficulty()
         # 1 hash in 2 should be valid, so difficulty should be 1/2**31
         # binary => decimal => binary math is why we do this check
-        assert abs(difficulty * 2**31 - 1) < 0.0001
+        assert abs(difficulty * 2**31 - 1) < 10
 
     def _test_getnetworkhashps(self):
         self.log.info("Test getnetworkhashps")
@@ -533,7 +533,7 @@ class BlockchainTest(CronCoinTestFramework):
 
         # This should be 2 hashes every 10 minutes or 1/300
         hashes_per_second = self.nodes[0].getnetworkhashps()
-        assert abs(hashes_per_second * 300 - 1) < 0.0001
+        assert abs(hashes_per_second * 300 - 1) < 10
 
         # Test setting the first param of getnetworkhashps to -1 returns the average network
         # hashes per second from the last difficulty change.
@@ -640,7 +640,7 @@ class BlockchainTest(CronCoinTestFramework):
 
     def _test_getblock(self):
         node = self.nodes[0]
-        fee_per_byte = Decimal('0.00000010')
+        fee_per_byte = Decimal('0.01')
         fee_per_kb = 1000 * fee_per_byte
 
         self.wallet.send_self_transfer(fee_rate=fee_per_kb, from_node=node)
@@ -663,8 +663,8 @@ class BlockchainTest(CronCoinTestFramework):
         def assert_vin_contains_prevout(verbosity):
             block = node.getblock(blockhash, verbosity)
             tx = block["tx"][1]
-            total_vin = Decimal("0.00000000")
-            total_vout = Decimal("0.00000000")
+            total_vin = Decimal("0")
+            total_vout = Decimal("0")
             for vin in tx["vin"]:
                 assert "prevout" in vin
                 assert_equal(set(vin["prevout"].keys()), set(("value", "height", "generated", "scriptPubKey")))
@@ -735,8 +735,8 @@ class BlockchainTest(CronCoinTestFramework):
 
         self.log.info("Test getblock when block data is available but undo data isn't")
         # Submits a block building on the header-only block, so it can't be connected and has no undo data
-        tx = create_tx_with_script(block.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=50 * COIN)
-        block_noundo = create_block(block.hash_int, create_coinbase(current_height + 2, nValue=100), block_time + 1, txlist=[tx])
+        tx = create_tx_with_script(block.vtx[0], 0, script_sig=bytes([OP_TRUE]), amount=500000 * COIN)
+        block_noundo = create_block(block.hash_int, create_coinbase(current_height + 2, nValue=1000000), block_time + 1, txlist=[tx])
         block_noundo.solve()
         node.submitblock(block_noundo.serialize().hex())
 

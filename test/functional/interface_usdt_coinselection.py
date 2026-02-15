@@ -196,7 +196,7 @@ class CoinSelectionTracepointTest(CronCoinTestFramework):
         self.log.info("Failing to fund results in 1 tracepoint")
         # We should have 1 tracepoints in the order
         # 1. normal_create_tx_internal (type 2)
-        assert_raises_rpc_error(-6, "Insufficient funds", wallet.sendtoaddress, wallet.getnewaddress(), 102 * 50)
+        assert_raises_rpc_error(-6, "Insufficient funds", wallet.sendtoaddress, wallet.getnewaddress(), 102 * 500000)
         events = self.get_tracepoints([2])
         success, use_aps, _algo, _waste, change_pos = self.determine_selection_from_usdt(events)
         assert_equal(success, False)

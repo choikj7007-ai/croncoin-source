@@ -60,7 +60,7 @@ class BytesPerSigOpTest(CronCoinTestFramework):
         fund = self.wallet.send_to(
             from_node=self.nodes[0],
             scriptPubKey=script_to_p2wsh_script(witness_script),
-            amount=1000000,
+            amount=10000,
         )
 
         # create spending transaction
@@ -68,7 +68,7 @@ class BytesPerSigOpTest(CronCoinTestFramework):
         tx.vin = [CTxIn(COutPoint(int(fund["txid"], 16), fund["sent_vout"]))]
         tx.wit.vtxinwit = [CTxInWitness()]
         tx.wit.vtxinwit[0].scriptWitness.stack = [bytes(witness_script)]
-        tx.vout = [CTxOut(500000, output_script)]
+        tx.vout = [CTxOut(9000, output_script)]
         return tx
 
     def test_sigops_limit(self, bytes_per_sigop, num_sigops):
@@ -123,7 +123,7 @@ class BytesPerSigOpTest(CronCoinTestFramework):
         # tx by getting rid of the large padding output)
         tx.vout[0].scriptPubKey = CScript([OP_RETURN, b'test123'])
         assert_greater_than(sigop_equivalent_vsize, tx.get_vsize())
-        self.nodes[0].sendrawtransaction(hexstring=tx.serialize().hex(), maxburnamount='1.0')
+        self.nodes[0].sendrawtransaction(hexstring=tx.serialize().hex(), maxburnamount='10.0')
 
         # fetch parent tx, which doesn't contain any sigops
         parent_txid = tx.vin[0].prevout.hash.to_bytes(32, 'big').hex()
@@ -149,14 +149,14 @@ class BytesPerSigOpTest(CronCoinTestFramework):
 
         def create_bare_multisig_tx(utxo_to_spend=None):
             _, pubkey = generate_keypair()
-            amount_for_bare = 50000
+            amount_for_bare = 500
             tx_dict = self.wallet.create_self_transfer(fee=Decimal("3"), utxo_to_spend=utxo_to_spend)
             tx_utxo = tx_dict["new_utxo"]
             tx = tx_dict["tx"]
             tx.vout.append(CTxOut(amount_for_bare, keys_to_multisig_script([pubkey], k=1)))
             tx.vout[0].nValue -= amount_for_bare
             tx_utxo["txid"] = tx.txid_hex
-            tx_utxo["value"] -= Decimal("0.00005000")
+            tx_utxo["value"] -= Decimal("5")
             return (tx_utxo, tx)
 
         tx_parent_utxo, tx_parent = create_bare_multisig_tx()

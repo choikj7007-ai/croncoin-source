@@ -14,6 +14,7 @@ from test_framework.mempool_util import fill_mempool
 from test_framework.util import (
     assert_greater_than_or_equal,
     assert_equal,
+    get_fee,
 )
 from test_framework.wallet import (
     DEFAULT_FEE,
@@ -148,10 +149,10 @@ class PackageRBFTest(CronCoinTestFramework):
         self.assert_mempool_contents(expected=package_txns1)
 
         PACKAGE_FEE = DEFAULT_FEE + DEFAULT_CHILD_FEE
-        PACKAGE_FEE_MINUS_ONE = PACKAGE_FEE - Decimal("0.00000001")
+        PACKAGE_FEE_MINUS_ONE = PACKAGE_FEE - Decimal("0.001")
 
         # Package 2 has a higher feerate but lower absolute fee
-        package_hex2, package_txns2 = self.create_simple_package(coin, parent_fee=DEFAULT_FEE, child_fee=DEFAULT_CHILD_FEE - Decimal("0.00000001"))
+        package_hex2, package_txns2 = self.create_simple_package(coin, parent_fee=DEFAULT_FEE, child_fee=DEFAULT_CHILD_FEE - Decimal("0.001"))
         pkg_results2 = node.submitpackage(package_hex2)
         assert_equal(f"package RBF failed: insufficient anti-DoS fees, rejecting replacement {package_txns2[1].txid_hex}, less fees than conflicting txs; {PACKAGE_FEE_MINUS_ONE} < {PACKAGE_FEE}", pkg_results2["package_msg"])
         self.assert_mempool_contents(expected=package_txns1)
@@ -159,13 +160,19 @@ class PackageRBFTest(CronCoinTestFramework):
         self.log.info("Check replacement pays for incremental bandwidth")
         _, placeholder_txns3 = self.create_simple_package(coin)
         package_3_size = sum([tx.get_vsize() for tx in placeholder_txns3])
-        incremental_sats_required = (Decimal(package_3_size * 0.1) / COIN).quantize(Decimal("0.00000001"))
-        incremental_sats_short = incremental_sats_required - Decimal("0.00000005")
+        incremental_sats_required = get_fee(package_3_size, Decimal(mempool_util.DEFAULT_INCREMENTAL_RELAY_FEE) / COIN)
+        incremental_sats_short = incremental_sats_required - Decimal("0.001")
         # Recreate the package with slightly higher fee once we know the size of the new package, but still short of required fee
         failure_package_hex3, failure_package_txns3 = self.create_simple_package(coin, parent_fee=DEFAULT_FEE, child_fee=DEFAULT_CHILD_FEE + incremental_sats_short)
         assert_equal(package_3_size, sum([tx.get_vsize() for tx in failure_package_txns3]))
         pkg_results3 = node.submitpackage(failure_package_hex3)
-        assert_equal(f"package RBF failed: insufficient anti-DoS fees, rejecting replacement {failure_package_txns3[1].txid_hex}, not enough additional fees to relay; {incremental_sats_short:.8f} < {incremental_sats_required:.8f}", pkg_results3["package_msg"])
+        # Format amounts like C++ FormatMoney (3 decimal places, strip 1 trailing zero)
+        def fmt(x):
+            s = f"{x:.3f}"
+            if s[-1] == '0' and s[-3] != '.':
+                s = s[:-1]
+            return s
+        assert_equal(f"package RBF failed: insufficient anti-DoS fees, rejecting replacement {failure_package_txns3[1].txid_hex}, not enough additional fees to relay; {fmt(incremental_sats_short)} < {fmt(incremental_sats_required)}", pkg_results3["package_msg"])
         self.assert_mempool_contents(expected=package_txns1)
 
         success_package_hex3, success_package_txns3 = self.create_simple_package(coin, parent_fee=DEFAULT_FEE, child_fee=DEFAULT_CHILD_FEE + incremental_sats_required)
@@ -183,7 +190,7 @@ class PackageRBFTest(CronCoinTestFramework):
         assert 'package RBF failed: package feerate is less than or equal to parent feerate' in pkg_results5["package_msg"]
         self.assert_mempool_contents(expected=package_txns4)
 
-        package_hex5_1, package_txns5_1 = self.create_simple_package(coin, parent_fee=DEFAULT_CHILD_FEE, child_fee=DEFAULT_CHILD_FEE + Decimal("0.00000001"))
+        package_hex5_1, package_txns5_1 = self.create_simple_package(coin, parent_fee=DEFAULT_CHILD_FEE, child_fee=DEFAULT_CHILD_FEE + Decimal("0.001"))
         node.submitpackage(package_hex5_1)
         self.assert_mempool_contents(expected=package_txns5_1)
         self.generate(node, 1)
@@ -349,7 +356,7 @@ class PackageRBFTest(CronCoinTestFramework):
 
         # Package 2 feerate is below the feerate of directly conflicted parent, so it fails even though
         # total fees are higher than the original package
-        package_hex2, _package_txns2 = self.create_simple_package(coin, parent_fee=DEFAULT_CHILD_FEE - Decimal("0.00000001"), child_fee=DEFAULT_CHILD_FEE)
+        package_hex2, _package_txns2 = self.create_simple_package(coin, parent_fee=DEFAULT_CHILD_FEE - Decimal("0.001"), child_fee=DEFAULT_CHILD_FEE)
         pkg_results2 = node.submitpackage(package_hex2)
         assert_equal(pkg_results2["package_msg"], 'package RBF failed: insufficient feerate: does not improve feerate diagram')
         self.assert_mempool_contents(expected=package_txns1)
@@ -393,8 +400,9 @@ class PackageRBFTest(CronCoinTestFramework):
         coin = self.coins.pop()
 
         self.ctr += 1
+        # Use a high fee so the grandparent survives mempool eviction after fill_mempool
         grandparent_result = self.wallet.create_self_transfer(
-            fee=DEFAULT_FEE,
+            fee=DEFAULT_FEE * 100,
             utxo_to_spend=coin,
             sequence=MAX_BIP125_RBF_SEQUENCE - self.ctr,
         )
@@ -404,9 +412,13 @@ class PackageRBFTest(CronCoinTestFramework):
 
         # Now make package of two descendants that looks
         # like a cpfp where the parent can't get in on its own
+        # CronCoin: With COIN=1000, a small tx (104 vB) at minrelayfee gets 1 cro fee
+        # via ceildiv, giving effective rate ~9.6 cros/kvB which exceeds mempoolminfee (~6).
+        # Use target_vsize=2000 so the effective rate stays at ~1 cro/kvB (below mempoolminfee).
         self.ctr += 1
         parent_result = self.wallet.create_self_transfer(
             fee_rate=minrelayfeerate,
+            target_vsize=2000,
             utxo_to_spend=grandparent_result["new_utxo"],
             sequence=MAX_BIP125_RBF_SEQUENCE - self.ctr,
         )

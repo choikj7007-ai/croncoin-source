@@ -267,7 +267,7 @@ class WalletMiniscriptTest(CronCoinTestFramework):
         self.log.info("Generating an address for it and testing it detects funds")
         addr_type = "bech32m" if is_taproot else "bech32"
         addr = self.ms_sig_wallet.getnewaddress(address_type=addr_type)
-        txid = self.funder.sendtoaddress(addr, 0.01)
+        txid = self.funder.sendtoaddress(addr, 1)
         self.wait_until(lambda: txid in self.funder.getrawmempool())
         self.funder.generatetoaddress(1, self.funder.getnewaddress())
         utxo = self.ms_sig_wallet.listunspent(addresses=[addr])[0]
@@ -285,7 +285,7 @@ class WalletMiniscriptTest(CronCoinTestFramework):
                     "sequence": seq,
                 }
             ],
-            [{dest_addr: 0.009}],
+            [{dest_addr: 0.5}],
             lt,
         )
 

@@ -231,7 +231,7 @@ class EphemeralDustTest(CronCoinTestFramework):
         self.log.info("Test that spending from a tx with ephemeral outputs is only allowed if dust is spent as well")
 
         assert_equal(self.nodes[0].getrawmempool(), [])
-        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, dust_value=329)
+        dusty_tx, sweep_tx = self.create_ephemeral_dust_package(tx_version=3, dust_value=0)
 
         # Valid sweep we will RBF incorrectly by not spending dust as well
         self.nodes[0].submitpackage([dusty_tx["hex"], sweep_tx["hex"]])
@@ -255,7 +255,7 @@ class EphemeralDustTest(CronCoinTestFramework):
         self.generate(self.nodes[0], 1)
         assert_equal(self.nodes[0].getrawmempool(), [])
 
-        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3, dust_value=329)
+        dusty_tx, _ = self.create_ephemeral_dust_package(tx_version=3, dust_value=0)
 
         # Spend non-dust only
         unspent_sweep_tx = self.wallet.create_self_transfer_multi(utxos_to_spend=[dusty_tx["new_utxos"][0]], version=3)
@@ -450,7 +450,7 @@ class EphemeralDustTest(CronCoinTestFramework):
 
         # Cycle out the partial sweep to avoid triggering package RBF behavior which limits package to no in-mempool ancestors
         cancel_sweep = self.wallet.create_self_transfer_multi(fee_per_output=21000, utxos_to_spend=[B_coin], version=2)
-        self.nodes[0].sendrawtransaction(cancel_sweep["hex"])
+        self.nodes[0].sendrawtransaction(cancel_sweep["hex"], 0)
         assert_mempool_contents(self, self.nodes[0], expected=[dusty_tx["tx"] for dusty_tx in dusty_txs] + [cancel_sweep["tx"]])
 
         # Sweeps all dust, where all dusty txs are already in-mempool

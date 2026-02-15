@@ -35,8 +35,8 @@ class TxnMallTest(CronCoinTestFramework):
         return self.nodes[0].sendrawtransaction(tx['hex'])
 
     def run_test(self):
-        # All nodes should start with 1,250 BTC:
-        starting_balance = 1250
+        # All nodes should start with 12,500,000 CRN:
+        starting_balance = 12500000
 
         # All nodes should be out of IBD.
         # If the nodes are not all out of IBD, that can interfere with
@@ -91,7 +91,7 @@ class TxnMallTest(CronCoinTestFramework):
         # matured block, minus 40, minus 20, and minus transaction fees:
         expected = starting_balance + fund_foo_tx["fee"] + fund_bar_tx["fee"]
         if self.options.mine_block:
-            expected += 50
+            expected += 500000
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
@@ -125,14 +125,14 @@ class TxnMallTest(CronCoinTestFramework):
         assert_equal(tx1["confirmations"], -2)
         assert_equal(tx2["confirmations"], -2)
 
-        # Node0's total balance should be starting balance, plus 100BTC for
+        # Node0's total balance should be starting balance, plus 1000000 CRN for
         # two more matured blocks, minus 1240 for the double-spend, plus fees (which are
         # negative):
-        expected = starting_balance + 100 - 1240 + fund_foo_tx["fee"] + fund_bar_tx["fee"] + doublespend_fee
+        expected = starting_balance + 1000000 - 1240 + fund_foo_tx["fee"] + fund_bar_tx["fee"] + doublespend_fee
         assert_equal(self.nodes[0].getbalance(), expected)
 
-        # Node1's balance should be its initial balance (1250 for 25 block rewards) plus the doublespend:
-        assert_equal(self.nodes[1].getbalance(), 1250 + 1240)
+        # Node1's balance should be its initial balance (12500000 for 25 block rewards) plus the doublespend:
+        assert_equal(self.nodes[1].getbalance(), 12500000 + 1240)
 
 
 if __name__ == '__main__':

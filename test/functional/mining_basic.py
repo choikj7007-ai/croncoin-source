@@ -109,18 +109,18 @@ class MiningTest(CronCoinTestFramework):
         #      tx_c (3 sat/vbyte)
         #
         tx_a = wallet_sigops.send_self_transfer(from_node=node,
-                                                fee_rate=Decimal("0.00001"))
+                                                fee_rate=Decimal("1"))
         tx_b = wallet_sigops.send_self_transfer(from_node=node,
-                                                fee_rate=Decimal("0.00002"),
+                                                fee_rate=Decimal("2"),
                                                 utxo_to_spend=tx_a["new_utxo"])
         tx_c = wallet_sigops.send_self_transfer(from_node=node,
-                                                fee_rate=Decimal("0.00003"),
+                                                fee_rate=Decimal("3"),
                                                 utxo_to_spend=tx_b["new_utxo"])
 
         # Generate transaction without sigops. It will go first because it pays
         # higher fees (100 sat/vbyte) and descends from a different coinbase.
         tx_d = self.wallet.send_self_transfer(from_node=node,
-                                              fee_rate=Decimal("0.00100"))
+                                              fee_rate=Decimal("100"))
 
         block_template_txs = node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)['transactions']
 
@@ -149,7 +149,7 @@ class MiningTest(CronCoinTestFramework):
             if blockmintxfee_sat_kvb == DEFAULT_BLOCK_MIN_TX_FEE:
                 self.log.info(f"-> Default -blockmintxfee setting ({blockmintxfee_sat_kvb} sat/kvB)...")
             else:
-                blockmintxfee_parameter = f"-blockmintxfee={blockmintxfee_btc_kvb:.8f}"
+                blockmintxfee_parameter = f"-blockmintxfee={blockmintxfee_btc_kvb:.3f}"
                 self.log.info(f"-> Test {blockmintxfee_parameter} ({blockmintxfee_sat_kvb} sat/kvB)...")
                 self.restart_node(0, extra_args=[blockmintxfee_parameter, '-minrelaytxfee=0', '-persistmempool=0'])
             assert_equal(node.getmininginfo()['blockmintxfee'], blockmintxfee_btc_kvb)
@@ -290,7 +290,7 @@ class MiningTest(CronCoinTestFramework):
 
         LARGE_TXS_COUNT = 10
         LARGE_VSIZE = int(((MAX_BLOCK_WEIGHT - DEFAULT_BLOCK_RESERVED_WEIGHT) / WITNESS_SCALE_FACTOR) / LARGE_TXS_COUNT)
-        HIGH_FEERATE = Decimal("0.0003")
+        HIGH_FEERATE = Decimal("30")
 
         # Ensure the mempool is empty
         assert_equal(len(self.nodes[0].getrawmempool()), 0)
@@ -301,7 +301,7 @@ class MiningTest(CronCoinTestFramework):
 
         # Send 2 normal transactions with a lower fee rate
         NORMAL_VSIZE = int(2000 / WITNESS_SCALE_FACTOR)
-        NORMAL_FEERATE = Decimal("0.0001")
+        NORMAL_FEERATE = Decimal("10")
         self.send_transactions(utxos[LARGE_TXS_COUNT:LARGE_TXS_COUNT + 2], NORMAL_FEERATE, NORMAL_VSIZE)
 
         # Check that the mempool contains all transactions
@@ -390,11 +390,11 @@ class MiningTest(CronCoinTestFramework):
         assert_equal(mining_info['bits'], nbits_str(REGTEST_N_BITS))
         assert_equal(mining_info['target'], target_str(REGTEST_TARGET))
         # We don't care about precision, round to avoid mismatch under Valgrind:
-        assert_equal(round(mining_info['difficulty'], 10), Decimal('0.0000000005'))
+        assert_equal(round(mining_info['difficulty'], 5), Decimal('0'))
         assert_equal(mining_info['next']['height'], 201)
         assert_equal(mining_info['next']['target'], target_str(REGTEST_TARGET))
         assert_equal(mining_info['next']['bits'], nbits_str(REGTEST_N_BITS))
-        assert_equal(round(mining_info['next']['difficulty'], 10), Decimal('0.0000000005'))
+        assert_equal(round(mining_info['next']['difficulty'], 5), Decimal('0'))
         assert_equal(round(mining_info['networkhashps'], 5), Decimal('0.00333'))
         assert_equal(mining_info['pooledtx'], 0)
 

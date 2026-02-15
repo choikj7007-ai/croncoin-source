@@ -67,8 +67,8 @@ class UTXOSetHashTest(CronCoinTestFramework):
         assert_equal(finalized[::-1].hex(), node_muhash)
 
         self.log.info("Test deterministic UTXO set hash results")
-        assert_equal(node.gettxoutsetinfo()['hash_serialized_3'], "e0b4c80f2880985fdf1adc331ed0735ac207588f986c91c7c05e8cf5fe6780f0")
-        assert_equal(node.gettxoutsetinfo("muhash")['muhash'], "8739b878f23030ef39a5547edc7b57f88d50fdaaf47314ff0524608deb13067e")
+        assert_equal(node.gettxoutsetinfo()['hash_serialized_3'], "407e75f22629f264c3e5afb25fc7fff35453422e647bc84ffd3d9a0da88ff3e5")
+        assert_equal(node.gettxoutsetinfo("muhash")['muhash'], "f234a95fbda8d47a01c64b6a0c4705ac11ae0594b07b51c8f9a064a64c99471b")
 
     def run_test(self):
         self.test_muhash_implementation()

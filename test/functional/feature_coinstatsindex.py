@@ -55,7 +55,7 @@ class CoinStatsIndexTest(CronCoinTestFramework):
         self._test_init_index_after_reorg()
 
     def block_sanity_check(self, block_info):
-        block_subsidy = 50
+        block_subsidy = 500000
         assert_equal(
             block_info['prevout_spent'] + block_subsidy,
             block_info['new_outputs_ex_coinbase'] + block_info['coinbase'] + block_info['unspendable']
@@ -116,14 +116,14 @@ class CoinStatsIndexTest(CronCoinTestFramework):
         for hash_option in index_hash_options:
             # Genesis block is unspendable
             res4 = index_node.gettxoutsetinfo(hash_option, 0)
-            assert_equal(res4['total_unspendable_amount'], 50)
+            assert_equal(res4['total_unspendable_amount'], 500000)
             assert_equal(res4['block_info'], {
-                'unspendable': 50,
+                'unspendable': 500000,
                 'prevout_spent': 0,
                 'new_outputs_ex_coinbase': 0,
                 'coinbase': 0,
                 'unspendables': {
-                    'genesis_block': 50,
+                    'genesis_block': 500000,
                     'bip30': 0,
                     'scripts': 0,
                     'unclaimed_rewards': 0
@@ -133,12 +133,12 @@ class CoinStatsIndexTest(CronCoinTestFramework):
 
             # Test an older block height that included a normal tx
             res5 = index_node.gettxoutsetinfo(hash_option, 102)
-            assert_equal(res5['total_unspendable_amount'], 50)
+            assert_equal(res5['total_unspendable_amount'], 500000)
             assert_equal(res5['block_info'], {
                 'unspendable': 0,
-                'prevout_spent': 50,
-                'new_outputs_ex_coinbase': Decimal('49.99968800'),
-                'coinbase': Decimal('50.00031200'),
+                'prevout_spent': 500000,
+                'new_outputs_ex_coinbase': Decimal('499999.999'),
+                'coinbase': Decimal('500000.001'),
                 'unspendables': {
                     'genesis_block': 0,
                     'bip30': 0,
@@ -171,16 +171,16 @@ class CoinStatsIndexTest(CronCoinTestFramework):
         for hash_option in index_hash_options:
             # Check all amounts were registered correctly
             res6 = index_node.gettxoutsetinfo(hash_option, 108)
-            assert_equal(res6['total_unspendable_amount'], Decimal('70.99000000'))
+            assert_equal(res6['total_unspendable_amount'], Decimal('500020.990'))
             assert_equal(res6['block_info'], {
-                'unspendable': Decimal('20.99000000'),
-                'prevout_spent': 71,
-                'new_outputs_ex_coinbase': Decimal('49.99999000'),
-                'coinbase': Decimal('50.01001000'),
+                'unspendable': Decimal('20.990'),
+                'prevout_spent': 500021,
+                'new_outputs_ex_coinbase': Decimal('499999.000'),
+                'coinbase': Decimal('500001.010'),
                 'unspendables': {
                     'genesis_block': 0,
                     'bip30': 0,
-                    'scripts': Decimal('20.99000000'),
+                    'scripts': Decimal('20.990'),
                     'unclaimed_rewards': 0,
                 }
             })
@@ -201,9 +201,9 @@ class CoinStatsIndexTest(CronCoinTestFramework):
 
         for hash_option in index_hash_options:
             res7 = index_node.gettxoutsetinfo(hash_option, 109)
-            assert_equal(res7['total_unspendable_amount'], Decimal('80.99000000'))
+            assert_equal(res7['total_unspendable_amount'], Decimal('999980.990'))
             assert_equal(res7['block_info'], {
-                'unspendable': 10,
+                'unspendable': 499960,
                 'prevout_spent': 0,
                 'new_outputs_ex_coinbase': 0,
                 'coinbase': 40,
@@ -211,7 +211,7 @@ class CoinStatsIndexTest(CronCoinTestFramework):
                     'genesis_block': 0,
                     'bip30': 0,
                     'scripts': 0,
-                    'unclaimed_rewards': 10
+                    'unclaimed_rewards': 499960
                 }
             })
             self.block_sanity_check(res7['block_info'])

@@ -287,26 +287,26 @@ class WalletSendTest(CronCoinTestFramework):
 
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=7, add_to_wallet=False)
         fee = self.nodes[1].decodepsbt(res["psbt"])["fee"]
-        assert_fee_amount(fee, count_bytes(res["hex"]), Decimal("0.00007"))
+        assert_fee_amount(fee, self.nodes[0].decoderawtransaction(res["hex"])["vsize"], Decimal("7"))
 
         # "unset" and None are treated the same for estimate_mode
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=2, estimate_mode="unset", add_to_wallet=False)
         fee = self.nodes[1].decodepsbt(res["psbt"])["fee"]
-        assert_fee_amount(fee, count_bytes(res["hex"]), Decimal("0.00002"))
+        assert_fee_amount(fee, self.nodes[0].decoderawtransaction(res["hex"])["vsize"], Decimal("2"))
 
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=4.531, add_to_wallet=False)
         fee = self.nodes[1].decodepsbt(res["psbt"])["fee"]
-        assert_fee_amount(fee, count_bytes(res["hex"]), Decimal("0.00004531"))
+        assert_fee_amount(fee, self.nodes[0].decoderawtransaction(res["hex"])["vsize"], Decimal("4.531"))
 
         res = self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=3, add_to_wallet=False)
         fee = self.nodes[1].decodepsbt(res["psbt"])["fee"]
-        assert_fee_amount(fee, count_bytes(res["hex"]), Decimal("0.00003"))
+        assert_fee_amount(fee, self.nodes[0].decoderawtransaction(res["hex"])["vsize"], Decimal("3"))
 
         # Test that passing fee_rate as both an argument and an option raises.
         self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=1, fee_rate=1, add_to_wallet=False,
                        expect_error=(-8, "Pass the fee_rate either as an argument, or in the options object, but not both"))
 
-        assert_raises_rpc_error(-8, "Use fee_rate (sat/vB) instead of feeRate", w0.send, {w1.getnewaddress(): 1}, 6, "conservative", 1, {"feeRate": 0.01})
+        assert_raises_rpc_error(-8, "Use fee_rate (cro/vB) instead of feeRate", w0.send, {w1.getnewaddress(): 1}, 6, "conservative", 1, {"feeRate": 0.01})
 
         assert_raises_rpc_error(-3, "Unexpected key totalFee", w0.send, {w1.getnewaddress(): 1}, 6, "conservative", 1, {"totalFee": 0.01})
 
@@ -326,25 +326,19 @@ class WalletSendTest(CronCoinTestFramework):
                 self.test_send(from_wallet=w0, to_wallet=w1, amount=1, conf_target=v, estimate_mode=mode,
                     expect_error=(-3, f"JSON value of type {k} for field conf_target is not of expected type number"))
 
-        # Test setting explicit fee rate just below the minimum of 1 sat/vB.
-        self.log.info("Explicit fee rate raises RPC error 'fee rate too low' if fee_rate of 0.99999999 is passed")
-        msg = "Fee rate (0.999 sat/vB) is lower than the minimum fee rate setting (1.000 sat/vB)"
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=0.999, expect_error=(-4, msg))
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=0.999, expect_error=(-4, msg))
-
         self.log.info("Explicit fee rate raises if invalid fee_rate is passed")
-        # Test fee_rate with zero values.
-        msg = "Fee rate (0.000 sat/vB) is lower than the minimum fee rate setting (1.000 sat/vB)"
-        for zero_value in [0, 0.000, 0.00000000, "0", "0.000", "0.00000000"]:
+        # Test fee_rate with zero values (below minimum of 0.001 cro/vB = 1 cro/kvB).
+        msg = "Fee rate (0.000 cro/vB) is lower than the minimum fee rate setting (0.001 cro/vB)"
+        for zero_value in [0, 0.000, 0, "0", "0.000", "0"]:
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=zero_value, expect_error=(-4, msg))
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=zero_value, expect_error=(-4, msg))
         msg = "Invalid amount"
         # Test fee_rate values that don't pass fixed-point parsing checks.
-        for invalid_value in ["", 0.000000001, 1e-09, 1.111111111, 1111111111111111, "31.999999999999999999999"]:
+        for invalid_value in ["", 0.0001, 1e-09, 1.1111, 1111111111111111, "31.999999999999999999999"]:
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=invalid_value, expect_error=(-3, msg))
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=invalid_value, expect_error=(-3, msg))
-        # Test fee_rate values that cannot be represented in sat/vB.
-        for invalid_value in [0.0001, 0.00000001, 0.00099999, 31.99999999]:
+        # Test fee_rate values that cannot be represented in cro/vB (more than 3 decimal places).
+        for invalid_value in [0.00011, 0.00000001, 0.00100001, 31.99999999]:
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, fee_rate=invalid_value, expect_error=(-3, msg))
             self.test_send(from_wallet=w0, to_wallet=w1, amount=1, arg_fee_rate=invalid_value, expect_error=(-3, msg))
         # Test fee_rate out of range (negative number).
@@ -364,20 +358,20 @@ class WalletSendTest(CronCoinTestFramework):
         # res = self.nodes[0].testmempoolaccept([hex])
         # assert not res[0]["allowed"]
         # assert_equal(res[0]["reject-reason"], "...") # low fee
-        # assert_fee_amount(fee, Decimal(len(res["hex"]) / 2), Decimal("0.000001"))
+        # assert_fee_amount(fee, Decimal(len(res["hex"]) / 2), Decimal("0.1"))
 
         self.log.info("If inputs are specified, do not automatically add more...")
-        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[], add_to_wallet=False)
+        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=500001, inputs=[], add_to_wallet=False)
         assert res["complete"]
         utxo1 = w0.listunspent()[0]
-        assert_equal(utxo1["amount"], 50)
+        assert_equal(utxo1["amount"], 500000)
         ERR_NOT_ENOUGH_PRESET_INPUTS = "The preselected coins total amount does not cover the transaction target. " \
                                        "Please allow other inputs to be automatically selected or include more coins manually"
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1],
+        self.test_send(from_wallet=w0, to_wallet=w1, amount=500001, inputs=[utxo1],
                        expect_error=(-4, ERR_NOT_ENOUGH_PRESET_INPUTS))
-        self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1], add_inputs=False,
+        self.test_send(from_wallet=w0, to_wallet=w1, amount=500001, inputs=[utxo1], add_inputs=False,
                        expect_error=(-4, ERR_NOT_ENOUGH_PRESET_INPUTS))
-        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=51, inputs=[utxo1], add_inputs=True, add_to_wallet=False)
+        res = self.test_send(from_wallet=w0, to_wallet=w1, amount=500001, inputs=[utxo1], add_inputs=True, add_to_wallet=False)
         assert res["complete"]
 
         self.log.info("Manual change address and position...")
@@ -525,7 +519,7 @@ class WalletSendTest(CronCoinTestFramework):
         assert signed["complete"]
         testres = self.nodes[0].testmempoolaccept([signed["hex"]])[0]
         assert_equal(testres["allowed"], True)
-        actual_fee_rate_sat_vb = Decimal(testres["fees"]["base"]) * Decimal(1e8) / Decimal(testres["vsize"])
+        actual_fee_rate_sat_vb = Decimal(testres["fees"]["base"]) * Decimal(1e3) / Decimal(testres["vsize"])
         # Due to ECDSA signatures not always being the same length, the actual fee rate may be slightly different
         # but rounded to nearest integer, it should be the same as the target fee rate
         assert_equal(round(actual_fee_rate_sat_vb), target_fee_rate_sat_vb)
@@ -543,23 +537,23 @@ class WalletSendTest(CronCoinTestFramework):
         # Picking 1471 inputs will exceed the max standard tx weight.
         outputs = []
         for _ in range(1472):
-            outputs.append({wallet.getnewaddress(address_type="legacy"): 0.1})
+            outputs.append({wallet.getnewaddress(address_type="legacy"): 10})
         self.nodes[0].send(outputs=outputs)
         self.generate(self.nodes[0], 1)
 
         # 1) Try to fund transaction only using the preset inputs
         inputs = wallet.listunspent()
         assert_raises_rpc_error(-4, "Transaction too large",
-                                wallet.send, outputs=[{wallet.getnewaddress(): 0.1 * 1471}], options={"inputs": inputs, "add_inputs": False})
+                                wallet.send, outputs=[{wallet.getnewaddress(): 10 * 1471}], options={"inputs": inputs, "add_inputs": False})
 
         # 2) Let the wallet fund the transaction
         assert_raises_rpc_error(-4, "The inputs size exceeds the maximum weight. Please try sending a smaller amount or manually consolidating your wallet's UTXOs",
-                                wallet.send, outputs=[{wallet.getnewaddress(): 0.1 * 1471}])
+                                wallet.send, outputs=[{wallet.getnewaddress(): 10 * 1471}])
 
         # 3) Pre-select some inputs and let the wallet fill-up the remaining amount
         inputs = inputs[0:1000]
         assert_raises_rpc_error(-4, "The combination of the pre-selected inputs and the wallet automatic inputs selection exceeds the transaction maximum weight. Please try sending a smaller amount or manually consolidating your wallet's UTXOs",
-                                wallet.send, outputs=[{wallet.getnewaddress(): 0.1 * 1471}], options={"inputs": inputs, "add_inputs": True})
+                                wallet.send, outputs=[{wallet.getnewaddress(): 10 * 1471}], options={"inputs": inputs, "add_inputs": True})
 
         self.nodes[1].unloadwallet("test_weight_limits")
 

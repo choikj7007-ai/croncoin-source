@@ -101,7 +101,7 @@ class MempoolClusterTest(CronCoinTestFramework):
 
         # It should also limit cluster sizes during replacement
         utxo_to_double_spend = self.wallet.get_utxo(confirmed_only=True)
-        fee = Decimal("0.000001")
+        fee = Decimal("0.1")
         tx_to_replace = self.wallet.create_self_transfer(utxo_to_spend=utxo_to_double_spend, fee=fee)
         node.sendrawtransaction(tx_to_replace["hex"])
 
@@ -222,11 +222,11 @@ class MempoolClusterTest(CronCoinTestFramework):
             utxos_to_merge.append(singleton["new_utxo"])
 
         assert_equal(len(utxos_to_merge), max_cluster_count)
-        tx_merger = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge)
+        tx_merger = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge, fee_per_output=10)
         assert_raises_rpc_error(-26, "too-large-cluster", node.sendrawtransaction, tx_merger["hex"])
 
         # Spending from 1 fewer cluster should work
-        tx_merger_all_but_one = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge[:-1])
+        tx_merger_all_but_one = self.wallet.create_self_transfer_multi(utxos_to_spend=utxos_to_merge[:-1], fee_per_output=10)
         node.sendrawtransaction(tx_merger_all_but_one["hex"])
         assert tx_merger_all_but_one["txid"] in node.getrawmempool()
 
@@ -343,12 +343,12 @@ class MempoolClusterTest(CronCoinTestFramework):
         # Now test single cluster with each tx being its own chunk
 
         # One chunk with one tx
-        first_chunk_tx = self.wallet.send_self_transfer(from_node=node)
+        first_chunk_tx = self.wallet.send_self_transfer(from_node=node, fee_rate=Decimal("1.0"))
         first_chunk_info = node.getmempoolcluster(first_chunk_tx["txid"])
         assert_equal(first_chunk_info, {'clusterweight': first_chunk_tx["tx"].get_weight(), 'txcount': 1, 'chunks': [{'chunkfee': first_chunk_tx["fee"], 'chunkweight': first_chunk_tx["tx"].get_weight(), 'txs': [first_chunk_tx["txid"]]}]})
 
         # Second connected tx, lower fee
-        second_chunk_tx = self.wallet.send_self_transfer(from_node=node, utxo_to_spend=first_chunk_tx["new_utxo"], fee_rate=Decimal("0.000002"))
+        second_chunk_tx = self.wallet.send_self_transfer(from_node=node, utxo_to_spend=first_chunk_tx["new_utxo"], fee_rate=Decimal("0.2"))
         first_chunk_info = node.getmempoolcluster(first_chunk_tx["txid"])
         # output is same across same cluster transactions
         assert_equal(first_chunk_info, node.getmempoolcluster(second_chunk_tx["txid"]))
@@ -357,7 +357,7 @@ class MempoolClusterTest(CronCoinTestFramework):
         assert_equal(first_chunk_info, {'clusterweight': first_chunkweight + second_chunkweight, 'txcount': 2, 'chunks': [{'chunkfee': first_chunk_tx["fee"], 'chunkweight': first_chunkweight, 'txs': [first_chunk_tx["txid"]]}, {'chunkfee': second_chunk_tx["fee"], 'chunkweight': second_chunkweight, 'txs': [second_chunk_tx["txid"]]}]})
 
         # Third connected tx, even lower fee
-        third_chunk_tx = self.wallet.send_self_transfer(from_node=node, utxo_to_spend=second_chunk_tx["new_utxo"], fee_rate=Decimal("0.000001"))
+        third_chunk_tx = self.wallet.send_self_transfer(from_node=node, utxo_to_spend=second_chunk_tx["new_utxo"], fee_rate=Decimal("0.1"))
         first_chunk_info = node.getmempoolcluster(first_chunk_tx["txid"])
         # output is same across same cluster transactions
         assert_equal(first_chunk_info, node.getmempoolcluster(third_chunk_tx["txid"]))
@@ -370,7 +370,7 @@ class MempoolClusterTest(CronCoinTestFramework):
         # If we prioritise the last transaction it can join the second transaction's chunk.
         node.prioritisetransaction(third_chunk_tx["txid"], 0, int(third_chunk_tx["fee"]*COIN) + 1)
         first_chunk_info = node.getmempoolcluster(first_chunk_tx["txid"])
-        assert_equal(first_chunk_info, {'clusterweight': first_chunkweight + second_chunkweight + third_chunkweight, 'txcount': 3, 'chunks': [{'chunkfee': first_chunk_tx["fee"], 'chunkweight': first_chunkweight, 'txs': [first_chunk_tx["txid"]]}, {'chunkfee': second_chunk_tx["fee"] + 2*third_chunk_tx["fee"] + Decimal("0.00000001"), 'chunkweight': second_chunkweight + third_chunkweight, 'txs': [second_chunk_tx["txid"], third_chunk_tx["txid"]]}]})
+        assert_equal(first_chunk_info, {'clusterweight': first_chunkweight + second_chunkweight + third_chunkweight, 'txcount': 3, 'chunks': [{'chunkfee': first_chunk_tx["fee"], 'chunkweight': first_chunkweight, 'txs': [first_chunk_tx["txid"]]}, {'chunkfee': second_chunk_tx["fee"] + 2*third_chunk_tx["fee"] + Decimal("0.001"), 'chunkweight': second_chunkweight + third_chunkweight, 'txs': [second_chunk_tx["txid"], third_chunk_tx["txid"]]}]})
 
     def run_test(self):
         node = self.nodes[0]

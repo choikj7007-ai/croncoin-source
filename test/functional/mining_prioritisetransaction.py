@@ -90,8 +90,8 @@ class PrioritiseTransactionTest(CronCoinTestFramework):
     def test_replacement(self):
         self.log.info("Test tx prioritisation stays after a tx is replaced")
         conflicting_input = self.wallet.get_utxo()
-        tx_replacee = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("0.0001"))
-        tx_replacement = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("0.005"))
+        tx_replacee = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("0.005"))
+        tx_replacement = self.wallet.create_self_transfer(utxo_to_spend=conflicting_input, fee_rate=Decimal("1.5"))
         # Add 1 satoshi fee delta to replacee
         self.nodes[0].prioritisetransaction(tx_replacee["txid"], 0, 100)
         assert_equal(self.nodes[0].getprioritisedtransactions(), { tx_replacee["txid"] : { "fee_delta" : 100, "in_mempool" : False}})
@@ -152,19 +152,23 @@ class PrioritiseTransactionTest(CronCoinTestFramework):
         self.nodes[0].prioritisetransaction(txid=txid_c, fee_delta=int(fee_delta_c_1 * COIN))
         self.nodes[0].prioritisetransaction(txid=txid_c, fee_delta=int(fee_delta_c_2 * COIN))
         raw_before[txid_a]["fees"]["descendant"] += fee_delta_b + fee_delta_c_1 + fee_delta_c_2
-        # We expect tx_a to have a chunk fee that includes tx_b and tx_c.
-        raw_before[txid_a]["fees"]["chunk"] += fee_delta_b + fee_delta_c_1 + fee_delta_c_2
         raw_before[txid_b]["fees"]["modified"] += fee_delta_b
         raw_before[txid_b]["fees"]["ancestor"] += fee_delta_b
         raw_before[txid_b]["fees"]["descendant"] += fee_delta_b
-        # We also expect tx_b and tx_c to have their chunk fees modified too,
-        # since they chunk together.
-        raw_before[txid_b]["fees"]["chunk"] += fee_delta_b + fee_delta_c_1 + fee_delta_c_2
         raw_before[txid_c]["fees"]["modified"] += fee_delta_c_1 + fee_delta_c_2
         raw_before[txid_c]["fees"]["ancestor"] += fee_delta_c_1 + fee_delta_c_2
         raw_before[txid_c]["fees"]["descendant"] += fee_delta_c_1 + fee_delta_c_2
-        raw_before[txid_c]["fees"]["chunk"] += fee_delta_b + fee_delta_c_1 + fee_delta_c_2
         raw_before[txid_d]["fees"]["ancestor"] += fee_delta_b + fee_delta_c_1 + fee_delta_c_2
+        # After the large deltas, {A,B,C} forms one optimal chunk and {D} is alone.
+        # Compute chunk values directly since the initial chunk structure may differ
+        # from post-delta structure (CronCoin: fee/weight ratios differ due to COIN=1000).
+        chunk_fee_abc = raw_before[txid_a]["fees"]["modified"] + raw_before[txid_b]["fees"]["modified"] + raw_before[txid_c]["fees"]["modified"]
+        chunk_weight_abc = raw_before[txid_a]["weight"] + raw_before[txid_b]["weight"] + raw_before[txid_c]["weight"]
+        for txid in [txid_a, txid_b, txid_c]:
+            raw_before[txid]["fees"]["chunk"] = chunk_fee_abc
+            raw_before[txid]["chunkweight"] = chunk_weight_abc
+        raw_before[txid_d]["fees"]["chunk"] = raw_before[txid_d]["fees"]["modified"]
+        raw_before[txid_d]["chunkweight"] = raw_before[txid_d]["weight"]
         raw_after = self.nodes[0].getrawmempool(verbose=True)
         # Don't bother comparing cluster ids, which are not meant to be stable.
         assert_equal(raw_before[txid_a], raw_after[txid_a])

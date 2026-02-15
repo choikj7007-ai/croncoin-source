@@ -187,7 +187,7 @@ class WalletV3Test(CronCoinTestFramework):
 
         # alice spends her output with a v3 transaction
         alice_unspent = self.alice.listunspent(minconf=0)[0]
-        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal(0.00000120)}
+        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal("0.12")}
         self.send_tx(self.alice, [alice_unspent], outputs, 3)
 
         # bob tries to spend money
@@ -216,7 +216,7 @@ class WalletV3Test(CronCoinTestFramework):
 
         # bob spends his output with a v3 transaction
         bob_unspent = self.bob.listunspent(minconf=0)[0]
-        outputs = {self.bob.getnewaddress() : bob_unspent['amount'] - Decimal(0.00000120)}
+        outputs = {self.bob.getnewaddress() : bob_unspent['amount'] - Decimal("0.12")}
         self.send_tx(self.bob, [bob_unspent], outputs, 3)
 
         # alice tries to spend money
@@ -239,7 +239,7 @@ class WalletV3Test(CronCoinTestFramework):
 
         # alice spends her output
         alice_unspent = self.alice.listunspent(minconf=0)[0]
-        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal(0.00000120)}
+        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal("0.12")}
         alice_tx = self.alice.createrawtransaction(inputs=[alice_unspent], outputs=outputs, version=version_b)
 
         assert_raises_rpc_error(
@@ -258,7 +258,7 @@ class WalletV3Test(CronCoinTestFramework):
 
         # alice spends her output
         alice_unspent = self.alice.listunspent(minconf=0)[0]
-        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal(0.00000120)}
+        outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - Decimal("0.12")}
         alice_tx = self.alice.createrawtransaction(inputs=[alice_unspent], outputs=outputs) # don't set the version here
 
         assert_raises_rpc_error(
@@ -278,19 +278,19 @@ class WalletV3Test(CronCoinTestFramework):
 
         # alice spends her output with a v3 transaction
         alice_unspent = self.alice.listunspent(minconf=0)[0]
-        alice_fee = Decimal(0.00000120)
+        alice_fee = Decimal("0.12")
         outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - alice_fee}
         alice_txid = self.send_tx(self.alice, [alice_unspent], outputs, 3)
 
         # bob tries to spend money
         bob_unspent = self.bob.listunspent(minconf=0)[0]
-        outputs = {self.bob.getnewaddress() : bob_unspent['amount'] - Decimal(0.00010120)}
+        outputs = {self.bob.getnewaddress() : bob_unspent['amount'] - Decimal("0.2")}
         bob_txid = self.send_tx(self.bob, [bob_unspent], outputs, 3)
 
         assert_equal(self.alice.gettransaction(alice_txid)['mempoolconflicts'], [bob_txid])
 
         self.log.info("Test that re-submitting Alice's transaction with a higher fee removes bob's tx as a mempool conflict")
-        fee_delta = Decimal(0.00030120)
+        fee_delta = Decimal("0.5")
         outputs = {self.alice.getnewaddress() : alice_unspent['amount'] - fee_delta}
         alice_txid = self.send_tx(self.alice, [alice_unspent], outputs, 3)
         assert_equal(self.alice.gettransaction(alice_txid)['mempoolconflicts'], [])
@@ -310,7 +310,7 @@ class WalletV3Test(CronCoinTestFramework):
         alice_unspent = self.alice.listunspent(minconf=0, maxconf=0)[0]
 
         # alice spends both of her outputs
-        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] + alice_unspent['amount'] - Decimal(0.00005120)}
+        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] + alice_unspent['amount'] - Decimal("0.5")}
         self.send_tx(self.alice, [alice_v2_unspent, alice_unspent], outputs, 3)
         # bob can't create a transaction
         outputs = {self.bob.getnewaddress() : 1.999}
@@ -323,10 +323,10 @@ class WalletV3Test(CronCoinTestFramework):
             bob_tx, {'include_unsafe': True}
         )
         # alice fee-bumps her tx so it only spends the v2 utxo
-        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] - Decimal(0.00015120)}
+        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] - Decimal("0.8")}
         self.send_tx(self.alice, [alice_v2_unspent], outputs, 2)
         # bob can now create a transaction
-        outputs = {self.bob.getnewaddress() : 1.999}
+        outputs = {self.bob.getnewaddress() : 1.9}
         self.send_tx(self.bob, [], outputs, 3)
 
     @cleanup
@@ -344,15 +344,15 @@ class WalletV3Test(CronCoinTestFramework):
         alice_unspent = self.alice.listunspent(minconf=0, maxconf=0)[0]
         # bob spends his utxo
         inputs=[]
-        outputs = {self.bob.getnewaddress() : 1.999}
+        outputs = {self.bob.getnewaddress() : 1.9}
         bob_txid = self.send_tx(self.bob, inputs, outputs, 3)
         # alice spends both of her utxos, replacing bob's tx
-        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] + alice_unspent['amount'] - Decimal(0.00005120)}
+        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] + alice_unspent['amount'] - Decimal("0.5")}
         alice_txid = self.send_tx(self.alice, [alice_v2_unspent, alice_unspent], outputs, 3)
         # bob's tx now has a mempool conflict
         assert_equal(self.bob.gettransaction(bob_txid)['mempoolconflicts'], [alice_txid])
         # alice fee-bumps her tx so it only spends the v2 utxo
-        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] - Decimal(0.00015120)}
+        outputs = {self.charlie.getnewaddress() : alice_v2_unspent['amount'] - Decimal("0.8")}
         self.send_tx(self.alice, [alice_v2_unspent], outputs, 2)
         # bob's tx now has non conflicts and can be rebroadcast
         bob_tx = self.bob.gettransaction(bob_txid)
@@ -469,7 +469,7 @@ class WalletV3Test(CronCoinTestFramework):
     def sendall_with_unconfirmed_v3(self):
         self.log.info("Test setting version to 3 with sendall + unconfirmed inputs")
 
-        outputs = {self.alice.getnewaddress(): 2.00001 for _ in range(4)}
+        outputs = {self.alice.getnewaddress(): 2.001 for _ in range(4)}
 
         self.send_tx(self.charlie, [], outputs, 2)
         self.generate(self.nodes[0], 1)
@@ -579,7 +579,7 @@ class WalletV3Test(CronCoinTestFramework):
     def cant_spend_multiple_unconfirmed_truc_outputs(self):
         self.log.info("Test that we can't spend multiple unconfirmed truc outputs")
 
-        outputs = {self.alice.getnewaddress(): 2.00001}
+        outputs = {self.alice.getnewaddress(): 2.001}
         self.send_tx(self.charlie, [], outputs, 3)
         self.send_tx(self.charlie, [], outputs, 3)
 
@@ -657,7 +657,7 @@ class WalletV3Test(CronCoinTestFramework):
         alice_unspent = self.alice.listunspent()[0]
         v2_outputs = [
             {self.alice.getnewaddress(): 2.5},
-            {self.alice.getnewaddress(): 2.4999},
+            {self.alice.getnewaddress(): 2.499},
         ]
         v2_txid = self.send_tx(self.alice, [alice_unspent], v2_outputs, 2)
 
@@ -669,7 +669,7 @@ class WalletV3Test(CronCoinTestFramework):
         assert_equal(v2_utxo["txid"], v2_txid)
 
         # Alice creates a truc child chaining from the v2 utxo
-        truc_outputs = {self.alice.getnewaddress(): v2_utxo["amount"] - Decimal("0.0001")}
+        truc_outputs = {self.alice.getnewaddress(): v2_utxo["amount"] - Decimal("0.1")}
         truc_txid = self.send_tx(self.alice, [v2_utxo], truc_outputs, 3)
 
         # Mine the truc transaction in a second block

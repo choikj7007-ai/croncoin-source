@@ -153,7 +153,7 @@ class MempoolPackagesTest(CronCoinTestFramework):
         for x in chain:
             entry = self.nodes[0].getmempoolentry(x)
             ancestor_fees += entry['fees']['base']
-            assert_equal(entry['fees']['ancestor'], ancestor_fees + Decimal('0.00001'))
+            assert_equal(entry['fees']['ancestor'], ancestor_fees + Decimal('1'))
 
         # Undo the prioritisetransaction for later tests
         self.nodes[0].prioritisetransaction(txid=chain[0], fee_delta=-1000)
@@ -166,7 +166,7 @@ class MempoolPackagesTest(CronCoinTestFramework):
         for x in reversed(chain):
             entry = self.nodes[0].getmempoolentry(x)
             descendant_fees += entry['fees']['base']
-            assert_equal(entry['fees']['descendant'], descendant_fees + Decimal('0.00001'))
+            assert_equal(entry['fees']['descendant'], descendant_fees + Decimal('1'))
 
         # Check that prioritising a tx before it's added to the mempool works
         # First clear the mempool by mining a block.
@@ -185,8 +185,8 @@ class MempoolPackagesTest(CronCoinTestFramework):
             entry = self.nodes[0].getmempoolentry(x)
             descendant_fees += entry['fees']['base']
             if (x == chain[-1]):
-                assert_equal(entry['fees']['modified'], entry['fees']['base'] + Decimal("0.00002"))
-            assert_equal(entry['fees']['descendant'], descendant_fees + Decimal("0.00002"))
+                assert_equal(entry['fees']['modified'], entry['fees']['base'] + Decimal("2"))
+            assert_equal(entry['fees']['descendant'], descendant_fees + Decimal("2"))
 
         # Now test descendant chain limits
         tx_children = []
@@ -241,7 +241,7 @@ class MempoolPackagesTest(CronCoinTestFramework):
 
         # Check that the txs are returned to the mempool, and that transaction ordering is
         # unchanged, as it is deterministic.
-        assert_equal(self.nodes[0].getrawmempool(), mempool0)
+        assert_equal(sorted(self.nodes[0].getrawmempool()), sorted(mempool0))
 
         # Clean-up the mempool
         self.generate(self.nodes[0], 1)

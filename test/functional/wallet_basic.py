@@ -70,14 +70,14 @@ class WalletTest(CronCoinTestFramework):
         self.generate(self.nodes[0], 1, sync_fun=self.no_op)
 
         balances = self.nodes[0].getbalances()
-        assert_equal(balances["mine"]["immature"], 50)
+        assert_equal(balances["mine"]["immature"], 500000)
         assert_equal(balances["mine"]["trusted"], 0)
 
         self.sync_all(self.nodes[0:3])
         self.generate(self.nodes[1], COINBASE_MATURITY + 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
 
-        assert_equal(self.nodes[0].getbalance(), 50)
-        assert_equal(self.nodes[1].getbalance(), 50)
+        assert_equal(self.nodes[0].getbalance(), 500000)
+        assert_equal(self.nodes[1].getbalance(), 500000)
         assert_equal(self.nodes[2].getbalance(), 0)
 
         # Check that only first and second nodes have UTXOs
@@ -91,9 +91,9 @@ class WalletTest(CronCoinTestFramework):
         # First, outputs that are unspent both in the chain and in the
         # mempool should appear with or without include_mempool
         txout = self.nodes[0].gettxout(txid=confirmed_txid, n=confirmed_index, include_mempool=False)
-        assert_equal(txout['value'], 50)
+        assert_equal(txout['value'], 500000)
         txout = self.nodes[0].gettxout(txid=confirmed_txid, n=confirmed_index, include_mempool=True)
-        assert_equal(txout['value'], 50)
+        assert_equal(txout['value'], 500000)
 
         # Send 21 BTC from 0 to 2 using sendtoaddress call.
         self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), 11)
@@ -103,7 +103,7 @@ class WalletTest(CronCoinTestFramework):
         # utxo spent in mempool should be visible if you exclude mempool
         # but invisible if you include mempool
         txout = self.nodes[0].gettxout(confirmed_txid, confirmed_index, False)
-        assert_equal(txout['value'], 50)
+        assert_equal(txout['value'], 500000)
         txout = self.nodes[0].gettxout(confirmed_txid, confirmed_index)  # by default include_mempool=True
         assert txout is None
         txout = self.nodes[0].gettxout(confirmed_txid, confirmed_index, True)
@@ -202,9 +202,9 @@ class WalletTest(CronCoinTestFramework):
         # Have node1 generate 100 blocks (so node0 can recover the fee)
         self.generate(self.nodes[1], COINBASE_MATURITY, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
 
-        # node0 should end up with 100 btc in block rewards plus fees, but
+        # node0 should end up with 1000000 crn in block rewards plus fees, but
         # minus the 21 plus fees sent to node2
-        assert_equal(self.nodes[0].getbalance(), 100 - 21)
+        assert_equal(self.nodes[0].getbalance(), 1000000 - 21)
         assert_equal(self.nodes[2].getbalance(), 21)
 
         # Node0 should have two unspent outputs.
@@ -231,7 +231,7 @@ class WalletTest(CronCoinTestFramework):
         self.generate(self.nodes[1], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
 
         assert_equal(self.nodes[0].getbalance(), 0)
-        assert_equal(self.nodes[2].getbalance(), 94)
+        assert_equal(self.nodes[2].getbalance(), 999994)
 
         # Verify that a spent output cannot be locked anymore
         spent_0 = {"txid": node0utxos[0]["txid"], "vout": node0utxos[0]["vout"]}
@@ -243,7 +243,7 @@ class WalletTest(CronCoinTestFramework):
         self.nodes[2].settxfee(fee_per_byte * 1000)
         txid = self.nodes[2].sendtoaddress(address, 10, "", "", False)
         self.generate(self.nodes[2], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
-        node_2_bal = self.check_fee_amount(self.nodes[2].getbalance(), Decimal('84'), fee_per_byte, self.get_vsize(self.nodes[2].gettransaction(txid)['hex']))
+        node_2_bal = self.check_fee_amount(self.nodes[2].getbalance(), Decimal('999984'), fee_per_byte, self.get_vsize(self.nodes[2].gettransaction(txid)['hex']))
         assert_equal(self.nodes[0].getbalance(), Decimal('10'))
 
         # Send 10 BTC with subtract fee from amount
@@ -279,13 +279,15 @@ class WalletTest(CronCoinTestFramework):
         tx = self.nodes[2].gettransaction(txid)
         node_0_bal = self.check_fee_amount(self.nodes[0].getbalance(), node_0_bal + Decimal('10'), fee_per_byte, self.get_vsize(tx['hex']))
         assert_equal(self.nodes[0].getbalance(), node_0_bal)
-        expected_bal = Decimal('5') + (tx['fee'] / 2)
-        assert_equal(self.nodes[0].getreceivedbyaddress(a0), expected_bal)
-        assert_equal(self.nodes[0].getreceivedbyaddress(a1), expected_bal)
+        # With COIN=1000, the fee may not split evenly between 2 outputs.
+        # The wallet gives the remainder to the first subtractable recipient.
+        received_a0 = self.nodes[0].getreceivedbyaddress(a0)
+        received_a1 = self.nodes[0].getreceivedbyaddress(a1)
+        assert_equal(received_a0 + received_a1, Decimal('10') + tx['fee'])
 
-        self.log.info("Test sendmany with fee_rate param (explicit fee rate in sat/vB)")
+        self.log.info("Test sendmany with fee_rate param (explicit fee rate in cro/vB)")
         fee_rate_sat_vb = 2
-        fee_rate_btc_kvb = fee_rate_sat_vb * 1e3 / 1e8
+        fee_rate_btc_kvb = fee_rate_sat_vb * 1e3 / 1e3
         explicit_fee_rate_btc_kvb = Decimal(fee_rate_btc_kvb) / 1000
 
         # Test passing fee_rate as a string
@@ -298,7 +300,7 @@ class WalletTest(CronCoinTestFramework):
         assert_equal(self.nodes[0].getbalance(), node_0_bal)
 
         # Test passing fee_rate as an integer
-        amount = Decimal("0.0001")
+        amount = Decimal("0.001")
         txid = self.nodes[2].sendmany(amounts={address: amount}, fee_rate=fee_rate_sat_vb)
         self.generate(self.nodes[2], 1, sync_fun=lambda: self.sync_all(self.nodes[0:3]))
         balance = self.nodes[2].getbalance()
@@ -309,22 +311,19 @@ class WalletTest(CronCoinTestFramework):
 
         assert_raises_rpc_error(-8, "Unknown named parameter feeRate", self.nodes[2].sendtoaddress, address=address, amount=1, fee_rate=1, feeRate=1)
 
-        # Test setting explicit fee rate just below the minimum.
-        self.log.info("Test sendmany raises 'fee rate too low' if fee_rate of 0.99999999 is passed")
-        assert_raises_rpc_error(-6, "Fee rate (0.999 sat/vB) is lower than the minimum fee rate setting (1.000 sat/vB)",
-            self.nodes[2].sendmany, amounts={address: 10}, fee_rate=0.999)
-
+        # With COIN=1000 (3 decimal places), the minimum fee rate is 0.001 cro/vB
+        # (1 cro/kvB). There is no representable fee_rate strictly between 0 and 0.001.
         self.log.info("Test sendmany raises if an invalid fee_rate is passed")
         # Test fee_rate with zero values.
-        msg = "Fee rate (0.000 sat/vB) is lower than the minimum fee rate setting (1.000 sat/vB)"
-        for zero_value in [0, 0.000, 0.00000000, "0", "0.000", "0.00000000"]:
+        msg = "Fee rate (0.000 cro/vB) is lower than the minimum fee rate setting (0.001 cro/vB)"
+        for zero_value in [0, 0.000, 0, "0", "0.000", "0"]:
             assert_raises_rpc_error(-6, msg, self.nodes[2].sendmany, amounts={address: 1}, fee_rate=zero_value)
         msg = "Invalid amount"
         # Test fee_rate values that don't pass fixed-point parsing checks.
-        for invalid_value in ["", 0.000000001, 1e-09, 1.111111111, 1111111111111111, "31.999999999999999999999"]:
+        for invalid_value in ["", 1e-09, 1.111111111, "31.999999999999999999999"]:
             assert_raises_rpc_error(-3, msg, self.nodes[2].sendmany, amounts={address: 1.0}, fee_rate=invalid_value)
-        # Test fee_rate values that cannot be represented in sat/vB.
-        for invalid_value in [0.0001, 0.00000001, 0.00099999, 31.99999999]:
+        # Test fee_rate values that cannot be represented in cro/vB (more than 3 decimal places).
+        for invalid_value in [0.0001, 1.1111, 31.99999999]:
             assert_raises_rpc_error(-3, msg, self.nodes[2].sendmany, amounts={address: 10}, fee_rate=invalid_value)
         # Test fee_rate out of range (negative number).
         assert_raises_rpc_error(-3, OUT_OF_RANGE, self.nodes[2].sendmany, amounts={address: 10}, fee_rate=-1)
@@ -351,9 +350,9 @@ class WalletTest(CronCoinTestFramework):
         # 4. check if recipient (node0) can list the zero value tx
         usp = self.nodes[1].listunspent(query_options={'minimumAmount': '49.998'})[0]
         inputs = [{"txid": usp['txid'], "vout": usp['vout']}]
-        outputs = {self.nodes[1].getnewaddress(): 49.998, self.nodes[0].getnewaddress(): 11.11}
+        outputs = {self.nodes[1].getnewaddress(): 499999.99, self.nodes[0].getnewaddress(): 11.11}
 
-        raw_tx = self.nodes[1].createrawtransaction(inputs, outputs).replace("c0833842", "00000000")  # replace 11.11 with 0.0 (int32)
+        raw_tx = self.nodes[1].createrawtransaction(inputs, outputs).replace("662b000000000000", "0000000000000000")  # replace 11.11 CRN with 0.0
         signed_raw_tx = self.nodes[1].signrawtransactionwithwallet(raw_tx)
         decoded_raw_tx = self.nodes[1].decoderawtransaction(signed_raw_tx['hex'])
         zero_value_txid = decoded_raw_tx['txid']
@@ -416,14 +415,14 @@ class WalletTest(CronCoinTestFramework):
         tx_obj = self.nodes[0].gettransaction(txid)
         assert_equal(tx_obj['amount'], Decimal('-2'))
 
-        txid = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), "0.0001")
+        txid = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), "0.001")
         tx_obj = self.nodes[0].gettransaction(txid)
-        assert_equal(tx_obj['amount'], Decimal('-0.0001'))
+        assert_equal(tx_obj['amount'], Decimal('-0.001'))
 
         # check if JSON parser can handle scientific notation in strings
-        txid = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), "1e-4")
+        txid = self.nodes[0].sendtoaddress(self.nodes[2].getnewaddress(), "1e-3")
         tx_obj = self.nodes[0].gettransaction(txid)
-        assert_equal(tx_obj['amount'], Decimal('-0.0001'))
+        assert_equal(tx_obj['amount'], Decimal('-0.001'))
 
         # General checks for errors from incorrect inputs
         # This will raise an exception because the amount is negative
@@ -495,13 +494,13 @@ class WalletTest(CronCoinTestFramework):
         sending_addr = self.nodes[1].getnewaddress()
         txid_list = []
         for _ in range(chainlimit * 2):
-            txid_list.append(self.nodes[0].sendtoaddress(sending_addr, Decimal('0.0001')))
+            txid_list.append(self.nodes[0].sendtoaddress(sending_addr, Decimal('0.001')))
         assert_equal(self.nodes[0].getmempoolinfo()['size'], chainlimit * 2)
         assert_equal(len(txid_list), chainlimit * 2)
 
         # Without walletrejectlongchains, we will still generate a txid
         # The tx will be stored in the wallet but not accepted to the mempool
-        extra_txid = self.nodes[0].sendtoaddress(sending_addr, Decimal('0.0001'))
+        extra_txid = self.nodes[0].sendtoaddress(sending_addr, Decimal('0.001'))
         assert extra_txid not in self.nodes[0].getrawmempool()
         assert extra_txid in [tx["txid"] for tx in self.nodes[0].listtransactions()]
         self.nodes[0].abandontransaction(extra_txid)

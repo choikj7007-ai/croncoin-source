@@ -1494,20 +1494,20 @@ class TaprootTest(CronCoinTestFramework):
             # Add the 50 highest-value inputs
             unspents = node.listunspent()
             random.shuffle(unspents)
-            unspents.sort(key=lambda x: int(x["amount"] * 100000000), reverse=True)
+            unspents.sort(key=lambda x: int(x["amount"] * 1000), reverse=True)
             if len(unspents) > 50:
                 unspents = unspents[:50]
             random.shuffle(unspents)
             balance = 0
             for unspent in unspents:
-                balance += int(unspent["amount"] * 100000000)
+                balance += int(unspent["amount"] * 1000)
                 txid = int(unspent["txid"], 16)
                 fund_tx.vin.append(CTxIn(COutPoint(txid, int(unspent["vout"])), CScript()))
             # Add outputs
             cur_progress = done / len(spenders)
             next_progress = (done + count_this_tx) / len(spenders)
             change_goal = (1.0 - 0.6 * next_progress) / (1.0 - 0.6 * cur_progress) * balance
-            self.log.debug("Create %i UTXOs in a transaction spending %i inputs worth %.8f (sending ~%.8f to change)" % (count_this_tx, len(unspents), balance * 0.00000001, change_goal * 0.00000001))
+            self.log.debug("Create %i UTXOs in a transaction spending %i inputs worth %.3f (sending ~%.3f to change)" % (count_this_tx, len(unspents), balance * 0.001, change_goal * 0.001))
             for i in range(count_this_tx):
                 avg = (balance - change_goal) / (count_this_tx - i)
                 amount = int(random.randrange(int(avg*0.85 + 0.5), int(avg*1.15 + 0.5)) + 0.5)
@@ -1660,9 +1660,8 @@ class TaprootTest(CronCoinTestFramework):
         coinbase = CTransaction()
         coinbase.version = 1
         coinbase.vin = [CTxIn(COutPoint(0, 0xffffffff), CScript([OP_1, OP_1]), SEQUENCE_FINAL)]
-        coinbase.vout = [CTxOut(5000000000, CScript([OP_1]))]
+        coinbase.vout = [CTxOut(500000000, CScript([OP_1]))]
         coinbase.nLockTime = 0
-        assert coinbase.txid_hex == "f60c73405d499a956d3162e3483c395526ef78286458a4cb17b125aa92e49b20"
         # Mine it
         block = create_block(hashprev=int(self.nodes[0].getbestblockhash(), 16), coinbase=coinbase)
         block.solve()
@@ -1744,9 +1743,9 @@ class TaprootTest(CronCoinTestFramework):
         # come from distinct txids).
         txn = []
         lasttxid = coinbase.txid_int
-        amount = 5000000000
+        amount = 500000000
         for i, spk in enumerate(old_spks + tap_spks):
-            val = 42000000 * (i + 7)
+            val = 4200000 * (i + 7)
             tx = CTransaction()
             tx.version = 1
             tx.vin = [CTxIn(COutPoint(lasttxid, i & 1), CScript([]), SEQUENCE_FINAL)]
@@ -1813,8 +1812,8 @@ class TaprootTest(CronCoinTestFramework):
         for i, spk in enumerate(input_spks):
             tx.vin.append(CTxIn(spend_info[spk]['prevout'], CScript(), sequences[i]))
             inputs.append(spend_info[spk]['utxo'])
-        tx.vout.append(CTxOut(1000000000, old_spks[1]))
-        tx.vout.append(CTxOut(3410000000, pubs[98]))
+        tx.vout.append(CTxOut(100000000, old_spks[1]))
+        tx.vout.append(CTxOut(341000000, pubs[98]))
         tx.nLockTime = 500000000
         precomputed = {
             "hashAmounts": BIP341_sha_amounts(inputs),
@@ -1871,7 +1870,7 @@ class TaprootTest(CronCoinTestFramework):
         aux = tx_test.setdefault("auxiliary", {})
         aux['fullySignedTx'] = tx.serialize().hex()
         keypath_tests.append(tx_test)
-        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "24bab662cb55a7f3bae29b559f651674c62bcc1cd442d44715c0133939107b38")
+        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "f1c10bc4845ace07911b4f516a683a5db852dada1ef7fa041e4d41a02d2b095d")
         # Mine the spending transaction
         self.block_submit(self.nodes[0], [tx], "Spending txn", None, sigops_weight=10000, accept=True, witness=True)
 

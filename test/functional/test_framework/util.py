@@ -34,7 +34,7 @@ logger = logging.getLogger("TestFramework.utils")
 ##################
 
 
-def assert_approx(v, vexp, vspan=0.00001):
+def assert_approx(v, vexp, vspan=0.001):
     """Assert that `v` is within `vspan` of `vexp`"""
     if isinstance(v, Decimal) or isinstance(vexp, Decimal):
         v=Decimal(v)
@@ -50,12 +50,18 @@ def assert_fee_amount(fee, tx_size, feerate_BTC_kvB):
     """Assert the fee is in range."""
     assert isinstance(tx_size, int)
     target_fee = get_fee(tx_size, feerate_BTC_kvB)
-    if fee < target_fee:
-        raise AssertionError("Fee of %s BTC too low! (Should be %s BTC)" % (str(fee), str(target_fee)))
-    # allow the wallet's estimation to be at most 2 bytes off
-    high_fee = get_fee(tx_size + 2, feerate_BTC_kvB)
+    # With COIN=1000, the wallet calculates fees per-component (input vs non-input),
+    # each using floor with a 1-cro minimum. The max difference between ceildiv(total)
+    # and sum-of-floors for 2 components is 2 cros.
+    low_tolerance = Decimal('0.002')  # 2 cros
+    if fee < target_fee - low_tolerance:
+        raise AssertionError("Fee of %s CRN too low! (Should be %s CRN)" % (str(fee), str(target_fee)))
+    # allow the wallet's estimation to be at most 2 bytes off, plus 2 cros for
+    # feerate quantization (with COIN=1000, truncating feerate to integer cros/kvB
+    # can lose up to 1 cro when converting back to fee)
+    high_fee = get_fee(tx_size + 2, feerate_BTC_kvB) + low_tolerance
     if fee > high_fee:
-        raise AssertionError("Fee of %s BTC too high! (Should be %s BTC)" % (str(fee), str(target_fee)))
+        raise AssertionError("Fee of %s CRN too high! (Should be %s CRN)" % (str(fee), str(target_fee)))
 
 
 def summarise_dict_differences(thing1, thing2):
@@ -230,10 +236,10 @@ def assert_array_result(object_array, to_match, expected, should_not_find=False)
 
 
 def check_json_precision():
-    """Make sure json library being used does not lose precision converting BTC values"""
-    n = Decimal("20000000.00000003")
-    satoshis = int(json.loads(json.dumps(float(n))) * 1.0e8)
-    if satoshis != 2000000000000003:
+    """Make sure json library being used does not lose precision converting CRN values"""
+    n = Decimal("20000000.003")
+    cros = int(json.loads(json.dumps(float(n))) * 1.0e3)
+    if cros != 20000000003:
         raise RuntimeError("JSON encode/decode loses precision")
 
 
@@ -544,7 +550,7 @@ def write_config(config_path, *, n, chain, extra_config="", disable_autoconnect=
         f.write("rpcservertimeout=99000\n")
         f.write("rpcdoccheck=1\n")
         f.write("rpcthreads=2\n")
-        f.write("fallbackfee=0.0002\n")
+        f.write("fallbackfee=0.001\n")
         f.write("server=1\n")
         f.write("keypool=1\n")
         f.write("discover=0\n")

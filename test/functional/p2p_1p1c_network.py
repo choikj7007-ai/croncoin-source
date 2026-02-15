@@ -65,7 +65,7 @@ class PackageRelayTest(CronCoinTestFramework):
         parent2 = wallet.create_self_transfer(fee_rate=Decimal(DEFAULT_MIN_RELAY_TX_FEE) / COIN * 20, confirmed_only=True)
         child = wallet.create_self_transfer_multi(
             utxos_to_spend=[parent1["new_utxo"], parent2["new_utxo"]],
-            fee_per_output=999*parent1["tx"].get_vsize(),
+            fee_per_output=50*parent1["tx"].get_vsize(),
         )
         return [parent1["hex"], parent2["hex"], child["hex"]], parent1["tx"], parent2["tx"], child["tx"]
 

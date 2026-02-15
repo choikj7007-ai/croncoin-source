@@ -761,8 +761,9 @@ class OrphanHandlingTest(CronCoinTestFramework):
             num_outputs=1,
             fee_per_output=2*FEE_INCREMENT
         )
-        tx_replacer_C = self.wallet.create_self_transfer(
-            utxo_to_spend=coin_C,
+        tx_replacer_C = self.wallet.create_self_transfer_multi(
+            utxos_to_spend=[coin_C],
+            num_outputs=1,
             fee_per_output=3*FEE_INCREMENT
         )
 

@@ -237,7 +237,7 @@ class ListSinceBlockTest(CronCoinTestFramework):
         self.split_network()
 
         # send from nodes[1] using utxo to nodes[0]
-        change = '%.8f' % (float(utxo['amount']) - 1.0003)
+        change = '%.3f' % (float(utxo['amount']) - 1.001)
         recipient_dict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[1].getnewaddress(): change,
@@ -313,7 +313,7 @@ class ListSinceBlockTest(CronCoinTestFramework):
         # create and sign a transaction
         utxos = self.nodes[2].listunspent()
         utxo = utxos[0]
-        change = '%.8f' % (float(utxo['amount']) - 1.0003)
+        change = '%.3f' % (float(utxo['amount']) - 1.001)
         recipient_dict = {
             self.nodes[0].getnewaddress(): 1,
             self.nodes[2].getnewaddress(): change,
@@ -379,8 +379,8 @@ class ListSinceBlockTest(CronCoinTestFramework):
         tx_input = dict(
             sequence=MAX_BIP125_RBF_SEQUENCE, **next(u for u in spending_node.listunspent()))
         rawtx = spending_node.createrawtransaction(
-            [tx_input], {dest_address: tx_input["amount"] - Decimal("0.00051000"),
-                         spending_node.getrawchangeaddress(): Decimal("0.00050000")})
+            [tx_input], {dest_address: tx_input["amount"] - Decimal("51"),
+                         spending_node.getrawchangeaddress(): Decimal("50")})
         signedtx = spending_node.signrawtransactionwithwallet(rawtx)
         orig_tx_id = spending_node.sendrawtransaction(signedtx["hex"])
         original_tx = spending_node.gettransaction(orig_tx_id)

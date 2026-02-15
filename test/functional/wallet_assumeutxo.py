@@ -170,7 +170,7 @@ class AssumeutxoTest(CronCoinTestFramework):
 
         assert_equal(
             dump_output['txoutset_hash'],
-            "d2b051ff5e8eef46520350776f4100dd710a63447a8e01d917e92e79751a63e2")
+            "c241781ebc737342de8555d30dd31cbaa994afd427a2ce44332d63cca2122dd5")
         assert_equal(dump_output["nchaintx"], 334)
         assert_equal(n0.getblockchaininfo()["blocks"], SNAPSHOT_BASE_HEIGHT)
 

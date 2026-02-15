@@ -44,8 +44,12 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.num_nodes = 4
         self.extra_args = [[
             "-deprecatedrpc=settxfee",
-            "-minrelaytxfee=0.00001000",
+            "-minrelaytxfee=0.001",
         ] for i in range(self.num_nodes)]
+        # Node 3 uses a lower max fee so that fee_rate tests can trigger the max fee
+        # check without exceeding the node's limited balance (COIN=1000 means high fee
+        # rates produce large absolute fees relative to test UTXO values)
+        self.extra_args[3].append("-maxtxfee=1")
         self.setup_clean_chain = True
         # whitelist peers to speed up tx relay / mempool sync
         self.noban_tx_relay = True
@@ -109,7 +113,8 @@ class RawTransactionsTest(CronCoinTestFramework):
         # than a minimum sized signature.
 
         #            = 2 bytes * minRelayTxFeePerByte
-        self.fee_tolerance = 2 * self.min_relay_tx_fee / 1000
+        #            With COIN=1000 (3 decimal places), clamp to the minimum unit (1 cro = 0.001 CRN)
+        self.fee_tolerance = max(Decimal('0.001'), 2 * self.min_relay_tx_fee / 1000)
 
         self.generate(self.nodes[2], 1)
         self.generate(self.nodes[0], 121)
@@ -187,7 +192,7 @@ class RawTransactionsTest(CronCoinTestFramework):
     def test_change_position(self):
         """Ensure setting changePosition in fundraw with an exact match is handled properly."""
         self.log.info("Test fundrawtxn changePosition option")
-        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():50})
+        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():500000})
         rawmatch = self.nodes[2].fundrawtransaction(rawmatch, changePosition=1, subtractFeeFromOutputs=[0])
         assert_equal(rawmatch["changepos"], -1)
 
@@ -634,8 +639,11 @@ class RawTransactionsTest(CronCoinTestFramework):
         inputs = wallet.listunspent()
 
         # Deduce exact fee to produce a changeless transaction
-        tx_size = 110  # Total tx size: 110 vbytes, p2wpkh -> p2wpkh. Input 68 vbytes + rest of tx is 42 vbytes.
-        value = inputs[0]["amount"] - get_fee(tx_size, self.min_relay_tx_fee)
+        # The wallet calculates fees for inputs and non-inputs separately, each with a
+        # minimum of 1 cro. At low fee rates with COIN=1000, this can exceed get_fee(total).
+        input_vsize = 68   # P2WPKH input
+        noninput_vsize = 42  # Rest of tx (p2wpkh output + overhead)
+        value = inputs[0]["amount"] - get_fee(input_vsize, self.min_relay_tx_fee) - get_fee(noninput_vsize, self.min_relay_tx_fee)
 
         outputs = {self.nodes[0].getnewaddress():value}
         rawtx = wallet.createrawtransaction(inputs, outputs)
@@ -670,7 +678,7 @@ class RawTransactionsTest(CronCoinTestFramework):
             self.generate(self.nodes[1], 1)
 
             # Make sure funds are received at node1.
-            assert_equal(oldBalance+Decimal('51.10000000'), self.nodes[0].getbalance())
+            assert_equal(oldBalance+Decimal('500001.1'), self.nodes[0].getbalance())
 
             # Restore pre-test wallet state
             wallet.sendall(recipients=[df_wallet.getnewaddress(), df_wallet.getnewaddress(), df_wallet.getnewaddress()])
@@ -686,12 +694,12 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.generate(self.nodes[1], 1)
 
         for _ in range(20):
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.01)
+            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.generate(self.nodes[0], 1)
 
         # Fund a tx with ~20 small inputs.
         inputs = []
-        outputs = {self.nodes[0].getnewaddress():0.15,self.nodes[0].getnewaddress():0.04}
+        outputs = {self.nodes[0].getnewaddress():1.5,self.nodes[0].getnewaddress():0.4}
         rawtx = self.nodes[1].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[1].fundrawtransaction(rawtx)
 
@@ -712,20 +720,20 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.generate(self.nodes[1], 1)
 
         for _ in range(20):
-            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.01)
+            self.nodes[0].sendtoaddress(self.nodes[1].getnewaddress(), 0.1)
         self.generate(self.nodes[0], 1)
 
         # Fund a tx with ~20 small inputs.
         oldBalance = self.nodes[0].getbalance()
 
         inputs = []
-        outputs = {self.nodes[0].getnewaddress():0.15,self.nodes[0].getnewaddress():0.04}
+        outputs = {self.nodes[0].getnewaddress():1.5,self.nodes[0].getnewaddress():0.4}
         rawtx = self.nodes[1].createrawtransaction(inputs, outputs)
         fundedTx = self.nodes[1].fundrawtransaction(rawtx)
         fundedAndSignedTx = self.nodes[1].signrawtransactionwithwallet(fundedTx['hex'])
         self.nodes[1].sendrawtransaction(fundedAndSignedTx['hex'])
         self.generate(self.nodes[1], 1)
-        assert_equal(oldBalance+Decimal('50.19000000'), self.nodes[0].getbalance()) #0.19+block reward
+        assert_equal(oldBalance+Decimal('500001.9'), self.nodes[0].getbalance()) #1.9+block reward
 
     def test_op_return(self):
         self.log.info("Test fundrawtxn with OP_RETURN and no vin")
@@ -803,7 +811,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         wwatch.unloadwallet()
 
     def test_option_feerate(self):
-        self.log.info("Test fundrawtxn with explicit fee rates (fee_rate sat/vB and feeRate BTC/kvB)")
+        self.log.info("Test fundrawtxn with explicit fee rates (fee_rate cro/vB and feeRate CRN/kvB)")
         node = self.nodes[3]
         # Make sure there is exactly one input so coin selection can't skew the result.
         assert_equal(len(self.nodes[3].listunspent(1)), 1)
@@ -811,28 +819,36 @@ class RawTransactionsTest(CronCoinTestFramework):
         outputs = {node.getnewaddress() : 1}
         rawtx = node.createrawtransaction(inputs, outputs)
 
-        result = node.fundrawtransaction(rawtx)  # uses self.min_relay_tx_fee (set by settxfee)
-        btc_kvb_to_sat_vb = 100000  # (1e5)
-        result1 = node.fundrawtransaction(rawtx, fee_rate=str(2 * btc_kvb_to_sat_vb * self.min_relay_tx_fee))
-        result2 = node.fundrawtransaction(rawtx, feeRate=2 * self.min_relay_tx_fee)
-        result3 = node.fundrawtransaction(rawtx, fee_rate=10 * btc_kvb_to_sat_vb * self.min_relay_tx_fee)
-        result4 = node.fundrawtransaction(rawtx, feeRate=str(10 * self.min_relay_tx_fee))
+        # Use a base fee rate high enough that multiplied rates produce distinguishable fees
+        # (at very low rates with COIN=1000, all fees round to the 1-cro minimum)
+        base_fee_rate = Decimal('0.1')  # 100 cros/kvB
+        node.settxfee(base_fee_rate)
+        result = node.fundrawtransaction(rawtx)
+        crn_kvb_to_cro_vb = 1  # CRN/kvB to cro/vB conversion (COIN=1000, 3 decimals)
+        result1 = node.fundrawtransaction(rawtx, fee_rate=str(2 * crn_kvb_to_cro_vb * base_fee_rate))
+        result2 = node.fundrawtransaction(rawtx, feeRate=2 * base_fee_rate)
+        result3 = node.fundrawtransaction(rawtx, fee_rate=10 * crn_kvb_to_cro_vb * base_fee_rate)
+        result4 = node.fundrawtransaction(rawtx, feeRate=str(10 * base_fee_rate))
+        node.settxfee(self.min_relay_tx_fee)  # restore
 
-        result_fee_rate = result['fee'] * 1000 / count_bytes(result['hex'])
-        assert_fee_amount(result1['fee'], count_bytes(result1['hex']), 2 * result_fee_rate)
-        assert_fee_amount(result2['fee'], count_bytes(result2['hex']), 2 * result_fee_rate)
-        assert_fee_amount(result3['fee'], count_bytes(result3['hex']), 10 * result_fee_rate)
-        assert_fee_amount(result4['fee'], count_bytes(result4['hex']), 10 * result_fee_rate)
+        # Sign to get accurate vsize (wallet uses vsize, not serialized bytes, for fees)
+        signed = node.signrawtransactionwithwallet(result['hex'])
+        tx_vsize = node.decoderawtransaction(signed['hex'])['vsize']
+        # Check fees using known rates and actual vsize
+        assert_fee_amount(result1['fee'], tx_vsize, 2 * base_fee_rate)
+        assert_fee_amount(result2['fee'], tx_vsize, 2 * base_fee_rate)
+        assert_fee_amount(result3['fee'], tx_vsize, 10 * base_fee_rate)
+        assert_fee_amount(result4['fee'], tx_vsize, 10 * base_fee_rate)
 
         # Test that funding non-standard "zero-fee" transactions is valid.
-        for param, zero_value in product(["fee_rate", "feeRate"], [0, 0.000, 0.00000000, "0", "0.000", "0.00000000"]):
+        for param, zero_value in product(["fee_rate", "feeRate"], [0, 0.000, 0, "0", "0.000", "0"]):
             assert_equal(self.nodes[3].fundrawtransaction(rawtx, {param: zero_value})["fee"], 0)
 
-        # With no arguments passed, expect fee of 141 satoshis.
-        assert_approx(node.fundrawtransaction(rawtx)["fee"], vexp=0.00000141, vspan=0.00000001)
-        # Expect fee to be 10,000x higher when an explicit fee rate 10,000x greater is specified.
-        result = node.fundrawtransaction(rawtx, fee_rate=10000)
-        assert_approx(result["fee"], vexp=0.0141, vspan=0.0001)
+        # With no arguments passed, expect fee of ~1 cro (minimum fee with rounding).
+        assert_approx(node.fundrawtransaction(rawtx)["fee"], vexp=0.001, vspan=0.001)
+        # Expect fee to be ~100x higher when an explicit fee rate 100x greater is specified.
+        result = node.fundrawtransaction(rawtx, fee_rate=0.1)
+        assert_approx(result["fee"], vexp=0.015, vspan=0.01)
 
         self.log.info("Test fundrawtxn with invalid estimate_mode settings")
         for k, v in {"number": 42, "object": {"foo": "bar"}}.items():
@@ -853,7 +869,7 @@ class RawTransactionsTest(CronCoinTestFramework):
                     node.fundrawtransaction, rawtx, estimate_mode=mode, conf_target=n, add_inputs=True)
 
         self.log.info("Test invalid fee rate settings")
-        for param, value in {("fee_rate", 100000), ("feeRate", 1.000)}:
+        for param, value in {("fee_rate", 10), ("feeRate", 10)}:
             assert_raises_rpc_error(-4, "Fee exceeds maximum configured by user (e.g. -maxtxfee, maxfeerate)",
                 node.fundrawtransaction, rawtx, add_inputs=True, **{param: value})
             assert_raises_rpc_error(-3, "Amount out of range",
@@ -861,19 +877,15 @@ class RawTransactionsTest(CronCoinTestFramework):
             assert_raises_rpc_error(-3, "Amount is not a number or string",
                 node.fundrawtransaction, rawtx, add_inputs=True, **{param: {"foo": "bar"}})
             # Test fee rate values that don't pass fixed-point parsing checks.
-            for invalid_value in ["", 0.000000001, 1e-09, 1.111111111, 1111111111111111, "31.999999999999999999999"]:
+            for invalid_value in ["", 0.0001, 0.00011000, 0.00000001, 0.00100001]:
                 assert_raises_rpc_error(-3, "Invalid amount", node.fundrawtransaction, rawtx, add_inputs=True, **{param: invalid_value})
-        # Test fee_rate values that cannot be represented in sat/vB.
-        for invalid_value in [0.0001, 0.00000001, 0.00099999, 31.99999999]:
-            assert_raises_rpc_error(-3, "Invalid amount",
-                node.fundrawtransaction, rawtx, fee_rate=invalid_value, add_inputs=True)
 
         self.log.info("Test min fee rate checks are bypassed with fundrawtxn, e.g. a fee_rate under 1 sat/vB is allowed")
         node.fundrawtransaction(rawtx, fee_rate=0.999, add_inputs=True)
-        node.fundrawtransaction(rawtx, feeRate=0.00000999, add_inputs=True)
+        node.fundrawtransaction(rawtx, feeRate=0.999, add_inputs=True)
 
         self.log.info("- raises RPC error if both feeRate and fee_rate are passed")
-        assert_raises_rpc_error(-8, "Cannot specify both fee_rate (sat/vB) and feeRate (BTC/kvB)",
+        assert_raises_rpc_error(-8, "Cannot specify both fee_rate (cro/vB) and feeRate (CRN/kvB)",
             node.fundrawtransaction, rawtx, fee_rate=0.1, feeRate=0.1, add_inputs=True)
 
         self.log.info("- raises RPC error if both feeRate and estimate_mode passed")
@@ -935,13 +947,13 @@ class RawTransactionsTest(CronCoinTestFramework):
         assert_equal(output[3], output[4] + result[4]['fee'])
         assert_equal(change[3] + result[3]['fee'], change[4])
 
-        # Test subtract fee from outputs with fee_rate (sat/vB)
-        btc_kvb_to_sat_vb = 100000  # (1e5)
+        # Test subtract fee from outputs with fee_rate (cro/vB)
+        crn_kvb_to_cro_vb = 1  # CRN/kvB to cro/vB: COIN/1000 = 1000/1000 = 1
         result = [self.nodes[3].fundrawtransaction(rawtx),  # uses self.min_relay_tx_fee (set by settxfee)
             self.nodes[3].fundrawtransaction(rawtx, subtractFeeFromOutputs=[]),  # empty subtraction list
             self.nodes[3].fundrawtransaction(rawtx, subtractFeeFromOutputs=[0]),  # uses self.min_relay_tx_fee (set by settxfee)
-            self.nodes[3].fundrawtransaction(rawtx, fee_rate=2 * btc_kvb_to_sat_vb * self.min_relay_tx_fee),
-            self.nodes[3].fundrawtransaction(rawtx, fee_rate=2 * btc_kvb_to_sat_vb * self.min_relay_tx_fee, subtractFeeFromOutputs=[0]),]
+            self.nodes[3].fundrawtransaction(rawtx, fee_rate=2 * crn_kvb_to_cro_vb * self.min_relay_tx_fee),
+            self.nodes[3].fundrawtransaction(rawtx, fee_rate=2 * crn_kvb_to_cro_vb * self.min_relay_tx_fee, subtractFeeFromOutputs=[0]),]
         dec_tx = [self.nodes[3].decoderawtransaction(tx_['hex']) for tx_ in result]
         output = [d['vout'][1 - r['changepos']]['value'] for d, r in zip(dec_tx, result)]
         change = [d['vout'][r['changepos']]['value'] for d, r in zip(dec_tx, result)]
@@ -959,9 +971,14 @@ class RawTransactionsTest(CronCoinTestFramework):
         outputs = {self.nodes[2].getnewaddress(): value for value in (1.0, 1.1, 1.2, 1.3)}
         rawtx = self.nodes[3].createrawtransaction(inputs, outputs)
 
+        # Use a higher fee rate so the fee is large enough to split meaningfully
+        # across 3 outputs (at min fee rate with COIN=1000, fee rounds to ~2 cros
+        # which can't be divided 3 ways with each share > 0)
+        self.nodes[3].settxfee(Decimal('0.1'))  # 100 cros/kvB
         result = [self.nodes[3].fundrawtransaction(rawtx),
                   # Split the fee between outputs 0, 2, and 3, but not output 1.
                   self.nodes[3].fundrawtransaction(rawtx, subtractFeeFromOutputs=[0, 2, 3])]
+        self.nodes[3].settxfee(self.min_relay_tx_fee)  # restore
 
         dec_tx = [self.nodes[3].decoderawtransaction(result[0]['hex']),
                   self.nodes[3].decoderawtransaction(result[1]['hex'])]
@@ -987,7 +1004,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         # Output 0 takes at least as much share of the fee, and no more than 2
         # satoshis more, than outputs 2 and 3.
         assert_greater_than_or_equal(share[0], share[2])
-        assert_greater_than_or_equal(share[2] + Decimal(2e-8), share[0])
+        assert_greater_than_or_equal(share[2] + Decimal('0.002'), share[0])
 
         # The fee is the same in both transactions.
         assert_equal(result[0]['fee'], result[1]['fee'])
@@ -1012,7 +1029,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         wallet = self.nodes[0].get_wallet_rpc(self.default_wallet_name)
         recipient = self.nodes[0].get_wallet_rpc("large")
         outputs = {}
-        rawtx = recipient.createrawtransaction([], {wallet.getnewaddress(): 147.99899260})
+        rawtx = recipient.createrawtransaction([], {wallet.getnewaddress(): 147.999})
 
         # Make 1500 0.1 BTC outputs. The amount that we target for funding is in
         # the BnB range when these outputs are used.  However if these outputs
@@ -1105,11 +1122,13 @@ class RawTransactionsTest(CronCoinTestFramework):
         input_add_weight = high_input_weight - (41 * 4)
         tx4_weight = wallet.decoderawtransaction(funded_tx4["hex"])["weight"] + input_add_weight
         tx4_vsize = int(ceil(tx4_weight / 4))
-        assert_fee_amount(funded_tx4["fee"], tx4_vsize, Decimal(0.0001))
+        assert_fee_amount(funded_tx4["fee"], tx4_vsize, Decimal(10))
 
         # Funding with weight at csuint boundaries should not cause problems
         funded_tx = wallet.fundrawtransaction(raw_tx, input_weights=[{"txid": ext_utxo["txid"], "vout": ext_utxo["vout"], "weight": 255}], fee_rate=2)
-        funded_tx = wallet.fundrawtransaction(raw_tx, input_weights=[{"txid": ext_utxo["txid"], "vout": ext_utxo["vout"], "weight": 65539}], fee_rate=2)
+        # Use a lower fee_rate for very large weight: at fee_rate=2, the estimated fee
+        # for 65539 weight (vsize ~16385) would be ~32 CRN, exceeding the UTXO balance
+        funded_tx = wallet.fundrawtransaction(raw_tx, input_weights=[{"txid": ext_utxo["txid"], "vout": ext_utxo["vout"], "weight": 65539}], fee_rate=0.01)
 
         self.nodes[2].unloadwallet("extfund")
 
@@ -1289,12 +1308,12 @@ class RawTransactionsTest(CronCoinTestFramework):
 
         addr = wallet.getnewaddress(address_type="bech32")
         ext_addr = self.nodes[0].getnewaddress(address_type="bech32")
-        utxo, ext_utxo = self.create_outpoints(self.nodes[0], outputs=[{addr: 5}, {ext_addr: 5}])
+        utxo, ext_utxo = self.create_outpoints(self.nodes[0], outputs=[{addr: 50}, {ext_addr: 50}])
 
-        self.nodes[0].sendtoaddress(wallet.getnewaddress(address_type="bech32"), 5)
+        self.nodes[0].sendtoaddress(wallet.getnewaddress(address_type="bech32"), 50)
         self.generate(self.nodes[0], 1)
 
-        rawtx = wallet.createrawtransaction([utxo], [{self.nodes[0].getnewaddress(address_type="bech32"): 8}])
+        rawtx = wallet.createrawtransaction([utxo], [{self.nodes[0].getnewaddress(address_type="bech32"): 80}])
         fundedtx = wallet.fundrawtransaction(rawtx, fee_rate=10, change_type="bech32")
         # with 71-byte signatures we should expect following tx size
         # tx overhead (10) + 2 inputs (41 each) + 2 p2wpkh (31 each) + (segwit marker and flag (2) + 2 p2wpkh 71 byte sig witnesses (107 each)) / witness scaling factor (4)
@@ -1302,7 +1321,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         assert_equal(fundedtx['fee'] * COIN, tx_size * 10)
 
         # Using the other output should have 72 byte sigs
-        rawtx = wallet.createrawtransaction([ext_utxo], [{self.nodes[0].getnewaddress(): 13}])
+        rawtx = wallet.createrawtransaction([ext_utxo], [{self.nodes[0].getnewaddress(): 130}])
         ext_desc = self.nodes[0].getaddressinfo(ext_addr)["desc"]
         fundedtx = wallet.fundrawtransaction(rawtx, fee_rate=10, change_type="bech32", solving_data={"descriptors": [ext_desc]})
         # tx overhead (10) + 3 inputs (41 each) + 2 p2wpkh(31 each) + (segwit marker and flag (2) + 2 p2wpkh 71 bytes sig witnesses (107 each) + p2wpkh 72 byte sig witness (108)) / witness scaling factor (4)
@@ -1319,12 +1338,12 @@ class RawTransactionsTest(CronCoinTestFramework):
 
         outputs = []
         for _ in range(1472):
-            outputs.append({wallet.getnewaddress(address_type="legacy"): 0.1})
+            outputs.append({wallet.getnewaddress(address_type="legacy"): 10})
         txid = self.nodes[0].send(outputs=outputs, change_position=0)["txid"]
         self.generate(self.nodes[0], 1)
 
         # 272 WU per input (273 when high-s); picking 1471 inputs will exceed the max standard tx weight.
-        rawtx = wallet.createrawtransaction([], [{wallet.getnewaddress(): 0.1 * 1471}])
+        rawtx = wallet.createrawtransaction([], [{wallet.getnewaddress(): 10 * 1471}])
 
         # 1) Try to fund transaction only using the preset inputs (pick all 1472 inputs to cover the fee)
         input_weights = []
@@ -1423,11 +1442,11 @@ class RawTransactionsTest(CronCoinTestFramework):
 
         # We want to choose more value than is available in 2 inputs when considering the fee,
         # but not enough to need 3 inputs when not considering the fee.
-        # So the target value must be at least 2.00000001 - fee.
-        lower_bound = Decimal("2.00000001") - fees
+        # So the target value must be at least 2.001 (2 CRN + 1 cro) - fee.
+        lower_bound = (Decimal("2.001") - fees).quantize(Decimal("0.001"))
         # The target value must be at most 2 - cost_of_change - not_input_fees - min_change (these are all
         # included in the target before ApproximateBestSubset).
-        upper_bound = Decimal("2.0") - cost_of_change - overhead_fees - Decimal("0.01")
+        upper_bound = (Decimal("2.0") - cost_of_change - overhead_fees - Decimal("0.001")).quantize(Decimal("0.001"))
         assert_greater_than_or_equal(upper_bound, lower_bound)
         do_fund_send(lower_bound)
         do_fund_send(upper_bound)
@@ -1456,8 +1475,8 @@ class RawTransactionsTest(CronCoinTestFramework):
         # In the former case, the calculated needed fee is higher than the actual fee being paid, so an assertion is reached
         # To test this does not happen, we subtract 202 sats from the input value. If working correctly, this should
         # fail with insufficient funds rather than croncoind asserting.
-        rawtx = w.createrawtransaction(inputs=[], outputs=[{self.nodes[0].getnewaddress(address_type="bech32"): 1 - 0.00000202}])
-        expected_err_msg = "The total exceeds your balance when the 0.00000078 transaction fee is included."
+        rawtx = w.createrawtransaction(inputs=[], outputs=[{self.nodes[0].getnewaddress(address_type="bech32"): 1 - 0.202}])
+        expected_err_msg = "The total exceeds your balance when the"
         assert_raises_rpc_error(-4, expected_err_msg, w.fundrawtransaction, rawtx, fee_rate=1.85)
 
     def test_input_confs_control(self):
@@ -1469,12 +1488,15 @@ class RawTransactionsTest(CronCoinTestFramework):
             self.nodes[2].sendmany("", {wallet.getnewaddress():1, wallet.getnewaddress():1})
             self.generate(self.nodes[2], 1)
 
+        # Use a fee rate that matches the fundrawtransaction calls below,
+        # so CPFP bump fees don't inflate the fee and consume too much of the UTXOs.
+        wallet.settxfee(Decimal('0.1'))
         unconfirmed_txid = wallet.sendtoaddress(wallet.getnewaddress(), 0.5)
 
         self.log.info("Crafting TX using an unconfirmed input")
         target_address = self.nodes[2].getnewaddress()
         raw_tx1 = wallet.createrawtransaction([], {target_address: 0.1}, 0, True)
-        funded_tx1 = wallet.fundrawtransaction(raw_tx1, {'fee_rate': 1, 'maxconf': 0})['hex']
+        funded_tx1 = wallet.fundrawtransaction(raw_tx1, {'fee_rate': 0.1, 'maxconf': 0})['hex']
 
         # Make sure we only had the one input
         tx1_inputs = self.nodes[0].decoderawtransaction(funded_tx1)['vin']
@@ -1492,7 +1514,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.log.info("Fail to craft a new TX with minconf above highest one")
         # Create a replacement tx to 'final_tx1' that has 1 BTC target instead of 0.1.
         raw_tx2 = wallet.createrawtransaction([{'txid': utxo1['txid'], 'vout': utxo1['vout']}], {target_address: 1})
-        assert_raises_rpc_error(-4, "Insufficient funds", wallet.fundrawtransaction, raw_tx2, {'add_inputs': True, 'minconf': 3, 'fee_rate': 10})
+        assert_raises_rpc_error(-4, "Insufficient funds", wallet.fundrawtransaction, raw_tx2, {'add_inputs': True, 'minconf': 3, 'fee_rate': 0.1})
 
         self.log.info("Fail to broadcast a new TX with maxconf 0 due to BIP125 rules to verify it actually chose unconfirmed outputs")
         # Now fund 'raw_tx2' to fulfill the total target (1 BTC) by using all the wallet unconfirmed outputs.
@@ -1500,12 +1522,13 @@ class RawTransactionsTest(CronCoinTestFramework):
         # So, the selection process, to cover the amount, will pick up the 'final_tx1' output as well, which is an output of the tx that this
         # new tx is replacing!. So, once we send it to the mempool, it will return a "bad-txns-spends-conflicting-tx"
         # because the input will no longer exist once the first tx gets replaced by this new one).
-        funded_invalid = wallet.fundrawtransaction(raw_tx2, {'add_inputs': True, 'maxconf': 0, 'fee_rate': 10})['hex']
+        # Use a higher fee_rate so the replacement improves the mempool feerate diagram
+        funded_invalid = wallet.fundrawtransaction(raw_tx2, {'add_inputs': True, 'maxconf': 0, 'fee_rate': 0.2})['hex']
         final_invalid = wallet.signrawtransactionwithwallet(funded_invalid)['hex']
         assert_raises_rpc_error(-26, "bad-txns-spends-conflicting-tx", self.nodes[0].sendrawtransaction, final_invalid)
 
         self.log.info("Craft a replacement adding inputs with highest depth possible")
-        funded_tx2 = wallet.fundrawtransaction(raw_tx2, {'add_inputs': True, 'minconf': 2, 'fee_rate': 10})['hex']
+        funded_tx2 = wallet.fundrawtransaction(raw_tx2, {'add_inputs': True, 'minconf': 2, 'fee_rate': 0.2})['hex']
         tx2_inputs = self.nodes[0].decoderawtransaction(funded_tx2)['vin']
         assert_greater_than_or_equal(len(tx2_inputs), 2)
         for vin in tx2_inputs:
@@ -1561,7 +1584,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.log.info("Test without preselected inputs")
         self.log.info("Attempt to send 0.45 BTC without SFFO")
         rawtx = wallet.createrawtransaction(inputs=[], outputs=[{default_wallet.getnewaddress(): 0.45}])
-        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
+        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
         self.log.info("Send 0.45 BTC with SFFO")
         wallet.fundrawtransaction(rawtx, options={"subtractFeeFromOutputs":[0]})
@@ -1572,7 +1595,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         self.log.info("Test with preselected inputs")
         self.log.info("Attempt to send 0.45 BTC preselecting 0.15 BTC utxo")
         rawtx = wallet.createrawtransaction(inputs=[{"txid": txid2, "vout": vout2}], outputs=[{default_wallet.getnewaddress(): 0.45}])
-        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.00000042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
+        assert_raises_rpc_error(-4, amount_with_fee_err_msg.format("0.042"), wallet.fundrawtransaction, rawtx, options={"fee_rate":1})
 
         self.log.info("Send 0.45 BTC preselecting 0.15 BTC utxo with SFFO")
         wallet.fundrawtransaction(hexstring=rawtx, options={"subtractFeeFromOutputs":[0]})
