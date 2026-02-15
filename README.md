@@ -1,176 +1,221 @@
-Cron Coin Core integration/staging tree
+Cron Coin Core
 =====================================
 
-What is Cron Coin Core?
+Cron Coin Core란?
 ---------------------
 
-Cron Coin Core connects to the Cron Coin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+Cron Coin Core는 Cron Coin P2P 네트워크에 연결하여 블록과 트랜잭션을 다운로드하고
+완전히 검증하는 풀 노드 소프트웨어입니다. 지갑과 그래픽 사용자 인터페이스(GUI)도
+포함되어 있으며, 선택적으로 빌드할 수 있습니다.
 
-Cron Coin is a cryptocurrency forked from Bitcoin Core with the following specifications:
-- Symbol: CRN
-- Smallest unit: cros (1 CRN = 1,000 cros)
-- Maximum supply: 210,000,000,000 CRN
-- Block reward: 500,000 CRN
-- Halving interval: 210,000 blocks
-- Block time: 10 minutes
-- Difficulty adjustment: every 2,016 blocks (~2 weeks)
+Cron Coin은 Bitcoin Core에서 포크된 암호화폐로, 다음과 같은 사양을 갖습니다:
+- 심볼: CRN
+- 최소 단위: cros (1 CRN = 1,000 cros)
+- 최대 공급량: 210,000,000,000 CRN
+- 블록 보상: 500,000 CRN
+- 반감기 주기: 210,000 블록
+- 블록 생성 시간: 10분
+- 난이도 조정: 2,016 블록마다 (~2주)
 
-Further information about Cron Coin Core is available in the [doc folder](/doc).
+자세한 정보는 [doc 폴더](/doc)를 참고하세요.
 
-Network Specifications
+네트워크 사양
 ----------------------
 
-| Parameter | Mainnet | Testnet | Testnet4 | Signet | Regtest |
+| 항목 | 메인넷 | 테스트넷 | 테스트넷4 | 시그넷 | 레그테스트 |
 |---|---|---|---|---|---|
-| Default Port | 9333 | 19333 | 49333 | 39333 | 19444 |
-| Bech32 Prefix | `crn` | `tcrn` | `tcrn` | `tcrn` | `crnrt` |
-| Base58 Pubkey Prefix | 28 (C...) | 111 | 111 | 111 | - |
-| Message Start | `c1c2c3c4` | `d1d2d3d4` | `e1e2e3e4` | dynamic | `fabfb5da` |
+| 기본 포트 | 9333 | 19333 | 49333 | 39333 | 19444 |
+| Bech32 접두사 | `crn` | `tcrn` | `tcrn` | `tcrn` | `crnrt` |
+| Base58 공개키 접두사 | 28 (C...) | 111 | 111 | 111 | - |
+| 메시지 시작 바이트 | `c1c2c3c4` | `d1d2d3d4` | `e1e2e3e4` | 동적 | `fabfb5da` |
 
-### Address Format
+### 주소 형식
 
-| Type | Example Prefix |
+| 유형 | 접두사 예시 |
 |---|---|
-| P2PKH (Legacy) | `C...` |
+| P2PKH (레거시) | `C...` |
 | P2WPKH (Bech32) | `crn1...` |
-| P2TR (Taproot) | `crn1p...` |
-| Regtest Bech32 | `crnrt1...` |
+| P2TR (탭루트) | `crn1p...` |
+| 레그테스트 Bech32 | `crnrt1...` |
 
-### DNS Seeds
+### DNS 시드 노드
 
-New nodes discover peers via DNS seed servers at `croncoin.org`:
+새로운 노드는 `croncoin.org`의 DNS 시드 서버를 통해 피어를 탐색합니다:
 
-| Network | DNS Seed Hostname |
+| 네트워크 | DNS 시드 호스트네임 |
 |---|---|
-| Mainnet | `seed1.croncoin.org`, `seed2.croncoin.org`, `seed3.croncoin.org` |
-| Testnet | `testnet-seed.croncoin.org` |
-| Testnet4 | `testnet4-seed.croncoin.org` |
-| Signet | `signet-seed.croncoin.org` |
+| 메인넷 | `seed1.croncoin.org`, `seed2.croncoin.org`, `seed3.croncoin.org` |
+| 테스트넷 | `testnet-seed.croncoin.org` |
+| 테스트넷4 | `testnet4-seed.croncoin.org` |
+| 시그넷 | `signet-seed.croncoin.org` |
 
-Nodes can also bootstrap manually without DNS seeds:
+DNS 시드 없이 수동으로 부트스트랩할 수도 있습니다:
 
 ```bash
-croncoind -seednode=<ip>:9333
-croncoind -addnode=<ip>:9333
+croncoind -seednode=<IP>:9333
+croncoind -addnode=<IP>:9333
 ```
 
-For details on setting up DNS seed infrastructure, see [contrib/seeds/README.md](/contrib/seeds/README.md).
+DNS 시드 인프라 구축에 대한 자세한 내용은 [contrib/seeds/README.md](/contrib/seeds/README.md)를 참고하세요.
 
-Fee Structure
+### DNS 레코드 설정
+
+`croncoin.org` 도메인에서 다음 DNS 레코드를 설정해야 합니다.
+
+**방법 A: DNS 시더(Seeder) 사용 (권장)**
+
+DNS 시더는 네트워크를 크롤링하여 활성 노드 IP를 자동으로 응답하는 서버입니다.
+[bitcoin-seeder](https://github.com/sipa/bitcoin-seeder)를 CronCoin용으로 수정하여 사용합니다.
+
+각 시드 호스트네임마다 NS 레코드와 시더 서버 A 레코드를 설정합니다:
+
+```
+; 메인넷 시드 (3개)
+seed1.croncoin.org.    NS    ns-seed1.croncoin.org.
+seed2.croncoin.org.    NS    ns-seed2.croncoin.org.
+seed3.croncoin.org.    NS    ns-seed3.croncoin.org.
+ns-seed1.croncoin.org. A     <시더서버1-IP>
+ns-seed2.croncoin.org. A     <시더서버2-IP>
+ns-seed3.croncoin.org. A     <시더서버3-IP>
+
+; 테스트넷 시드
+testnet-seed.croncoin.org.   NS    ns-testnet.croncoin.org.
+ns-testnet.croncoin.org.     A     <테스트넷-시더서버-IP>
+
+; 테스트넷4 시드
+testnet4-seed.croncoin.org.  NS    ns-testnet4.croncoin.org.
+ns-testnet4.croncoin.org.    A     <테스트넷4-시더서버-IP>
+
+; 시그넷 시드
+signet-seed.croncoin.org.    NS    ns-signet.croncoin.org.
+ns-signet.croncoin.org.      A     <시그넷-시더서버-IP>
+```
+
+**방법 B: 정적 A 레코드 (간단)**
+
+소규모 네트워크에서는 노드 IP를 직접 A/AAAA 레코드로 등록할 수 있습니다:
+
+```
+seed1.croncoin.org.    A      <노드1-IP>
+seed1.croncoin.org.    A      <노드2-IP>
+seed1.croncoin.org.    A      <노드3-IP>
+seed1.croncoin.org.    AAAA   <노드-IPv6>
+seed2.croncoin.org.    A      <노드4-IP>
+seed3.croncoin.org.    A      <노드5-IP>
+```
+
+> 초기 런칭 시에는 방법 B로 시작하고, 네트워크가 성장하면 방법 A(DNS 시더)로 전환하는 것을 권장합니다.
+
+수수료 구조
 -------------
 
-All fee values are denominated in **cros** (1 CRN = 1,000 cros). Fee rates are expressed in **cros/kvB** (cros per kilovirtual-byte).
+모든 수수료 값은 **cros** 단위입니다 (1 CRN = 1,000 cros). 수수료율은 **cros/kvB** (킬로가상바이트당 cros)로 표시됩니다.
 
-### Relay & Mining Fees
+### 중계 및 채굴 수수료
 
-| Parameter | Value (cros/kvB) | Value (CRN/kvB) | Description |
+| 항목 | 값 (cros/kvB) | 값 (CRN/kvB) | 설명 |
 |---|---|---|---|
-| Min Relay Fee | 1 | 0.001 | Minimum fee rate to relay a transaction (`-minrelaytxfee`) |
-| Incremental Relay Fee | 1 | 0.001 | Minimum fee bump for mempool eviction/RBF (`-incrementalrelayfee`) |
-| Block Min Tx Fee | 1 | 0.001 | Minimum fee rate for inclusion in a mined block (`-blockmintxfee`) |
-| Dust Relay Fee | 3 | 0.003 | Fee rate used to calculate dust threshold |
+| 최소 중계 수수료 | 1 | 0.001 | 트랜잭션 중계에 필요한 최소 수수료율 (`-minrelaytxfee`) |
+| 증분 중계 수수료 | 1 | 0.001 | 멤풀 교체/RBF에 필요한 최소 수수료 증가분 (`-incrementalrelayfee`) |
+| 블록 최소 수수료 | 1 | 0.001 | 채굴 블록에 포함되기 위한 최소 수수료율 (`-blockmintxfee`) |
+| 더스트 중계 수수료 | 3 | 0.003 | 더스트 임계값 계산에 사용되는 수수료율 |
 
-### Wallet Fees
+### 지갑 수수료
 
-| Parameter | Value (cros/kvB) | Value (CRN/kvB) | Description |
+| 항목 | 값 (cros/kvB) | 값 (CRN/kvB) | 설명 |
 |---|---|---|---|
-| Min Tx Fee | 1 | 0.001 | Minimum wallet fee rate (`-mintxfee`) |
-| Discard Fee | 10 | 0.01 | Fee rate below which change is discarded (`-discardfee`) |
-| Consolidate Fee Rate | 10 | 0.01 | Fee rate for UTXO consolidation (`-consolidatefeerate`) |
-| Wallet Incremental Fee | 5 | 0.005 | Recommended minimum fee bump for wallet RBF |
-| Fallback Fee | 0 | 0 | Fallback when fee estimation unavailable; 0 = disabled (`-fallbackfee`) |
-| Pay Tx Fee | 0 | 0 | User-specified fee rate; 0 = auto-estimate (`-paytxfee`) |
+| 최소 트랜잭션 수수료 | 1 | 0.001 | 지갑의 최소 수수료율 (`-mintxfee`) |
+| 폐기 수수료 | 10 | 0.01 | 이 수수료율 이하의 잔돈은 폐기됨 (`-discardfee`) |
+| 통합 수수료율 | 10 | 0.01 | UTXO 통합 시 수수료율 (`-consolidatefeerate`) |
+| 지갑 증분 수수료 | 5 | 0.005 | 지갑 RBF에 권장되는 최소 수수료 증가분 |
+| 대체 수수료 | 0 | 0 | 수수료 추정 불가 시 대체값; 0 = 비활성 (`-fallbackfee`) |
+| 지불 수수료 | 0 | 0 | 사용자 지정 수수료율; 0 = 자동 추정 (`-paytxfee`) |
 
-### Fee Limits
+### 수수료 한도
 
-| Parameter | Value (cros) | Value (CRN) | Description |
+| 항목 | 값 (cros) | 값 (CRN) | 설명 |
 |---|---|---|---|
-| Max Tx Fee | 100,000 | 100 | Maximum total fee per transaction (`-maxtxfee`) |
-| High Fee Warning | 10 cros/kvB | 0.01 CRN/kvB | Fee rate threshold that triggers a high-fee warning |
-| Max Raw Tx Fee Rate | 100,000 cros/kvB | 100 CRN/kvB | Maximum fee rate for `sendrawtransaction` |
+| 최대 트랜잭션 수수료 | 100,000 | 100 | 트랜잭션당 최대 수수료 (`-maxtxfee`) |
+| 높은 수수료 경고 | 10 cros/kvB | 0.01 CRN/kvB | 높은 수수료 경고가 표시되는 임계값 |
+| 최대 원시 트랜잭션 수수료율 | 100,000 cros/kvB | 100 CRN/kvB | `sendrawtransaction`의 최대 수수료율 |
 
-### Dust Thresholds
+### 더스트 임계값
 
-A transaction output is considered "dust" if the cost to spend it exceeds its value. With `DUST_RELAY_TX_FEE = 3 cros/kvB`:
+트랜잭션 출력의 사용 비용이 그 가치를 초과하면 "더스트"로 간주됩니다. `DUST_RELAY_TX_FEE = 3 cros/kvB` 기준:
 
-| Output Type | Dust Threshold |
+| 출력 유형 | 더스트 임계값 |
 |---|---|
 | P2PKH | ~0.546 cros |
 | P2WPKH (Bech32) | ~0.294 cros |
-| P2TR (Taproot) | ~0.330 cros |
+| P2TR (탭루트) | ~0.330 cros |
 
-### Fee Quantization Note
+### 수수료 양자화 참고
 
-Because `COIN = 1000`, the smallest expressible fee is 1 cro. For small transactions (~100 vB), the effective minimum fee rate becomes ~10 cros/kvB rather than the configured 1 cro/kvB. This is an inherent property of the 3-decimal-place precision and does not affect typical transaction sizes.
+`COIN = 1000`이므로 표현 가능한 최소 수수료는 1 cro입니다. 작은 트랜잭션(~100 vB)의 경우 실질 최소 수수료율이 설정된 1 cros/kvB 대신 ~10 cros/kvB가 됩니다. 이는 소수점 3자리 정밀도의 고유한 특성이며, 일반적인 크기의 트랜잭션에는 영향을 주지 않습니다.
 
-License
+라이선스
 -------
 
-Cron Coin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
-information or see https://opensource.org/license/MIT.
+Cron Coin Core는 MIT 라이선스 조건에 따라 배포됩니다. 자세한 내용은 [COPYING](COPYING) 또는
+https://opensource.org/license/MIT 를 참고하세요.
 
-Development Process
+개발 프로세스
 -------------------
 
-The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
-completely stable.
+`master` 브랜치는 정기적으로 빌드되고 테스트되지만 (빌드 방법은 `doc/build-*.md` 참고),
+완전히 안정적임을 보장하지는 않습니다.
 
-The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
-and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+기여 방법은 [CONTRIBUTING.md](CONTRIBUTING.md)에 설명되어 있으며,
+개발자를 위한 유용한 정보는 [doc/developer-notes.md](doc/developer-notes.md)에서 확인할 수 있습니다.
 
-Testing
+테스트
 -------
 
-### Automated Testing
+### 자동화 테스트
 
-Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
-submit new unit tests for old code. Unit tests can be compiled and run
-(assuming they weren't disabled during the generation of the build system) with: `ctest`. Further details on running
-and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+새 코드에 대한 [단위 테스트](src/test/README.md) 작성을 강력히 권장하며,
+기존 코드에 대한 단위 테스트 추가도 권장합니다. 단위 테스트는 다음 명령으로 컴파일 및 실행할 수 있습니다: `ctest`.
+자세한 내용은 [/src/test/README.md](/src/test/README.md)를 참고하세요.
 
-There are also [regression and integration tests](/test), written
-in Python.
-These tests can be run (if the [test dependencies](/test) are installed) with: `build/test/functional/test_runner.py`
-(assuming `build` is your build directory).
+Python으로 작성된 [회귀 및 통합 테스트](/test)도 있습니다.
+[테스트 의존성](/test)이 설치되어 있다면 다음 명령으로 실행할 수 있습니다: `build/test/functional/test_runner.py`
+(`build`는 빌드 디렉토리입니다).
 
-All 283 functional tests pass (264 passed, 19 skipped).
+전체 283개 기능 테스트 통과 (264개 통과, 19개 건너뜀).
 
-### Manual Quality Assurance (QA) Testing
+### 수동 품질 보증(QA) 테스트
 
-Changes should be tested by somebody other than the developer who wrote the
-code. This is especially important for large or high-risk changes. It is useful
-to add a test plan to the pull request description if testing the changes is
-not straightforward.
+변경 사항은 코드를 작성한 개발자가 아닌 다른 사람이 테스트해야 합니다.
+이는 대규모 또는 고위험 변경에 특히 중요합니다.
+테스트가 직관적이지 않은 경우 풀 리퀘스트 설명에 테스트 계획을 추가하는 것이 좋습니다.
 
-Mainnet Launch Roadmap
+메인넷 런칭 로드맵
 ----------------------
 
-### Phase 1: Critical (Must complete before launch)
+### 1단계: 필수 (런칭 전 반드시 완료)
 
-- [x] **DNS Seed Nodes**: DNS seed hostnames configured at `croncoin.org` (seed1/2/3, testnet-seed, testnet4-seed, signet-seed). Set up DNS seeder servers and populate `contrib/seeds/nodes_main.txt` with node IPs.
-- [ ] **Deploy Seed Nodes**: Deploy 4-6+ geographically distributed seed nodes running `croncoind` with stable uptime.
-- [ ] **Full Build Verification**: Verify `croncoind`, `croncoin-cli`, `croncoin-qt` build cleanly on Linux, macOS, and Windows. Publish reproducible build instructions.
-- [ ] **Security Audit**: Audit P2P message handling, port isolation from Bitcoin network, and peer discovery bootstrapping.
-- [ ] **Genesis Block Finalization**: Confirm mainnet genesis block parameters are final. Current genesis: `00000b336ddeb4eb1fe10cf0056d5fdc8ce5ebc7e8a3de01a6906f2a04bc87fa` (Feb 14, 2026).
+- [x] **DNS 시드 노드 구성**: `croncoin.org` 도메인에 DNS 시드 호스트네임 설정 완료 (seed1/2/3, testnet-seed, testnet4-seed, signet-seed). DNS 시더 서버를 배포하고 `contrib/seeds/nodes_main.txt`에 노드 IP를 등록해야 합니다.
+- [ ] **시드 노드 배포**: 지리적으로 분산된 4~6개 이상의 시드 노드에 `croncoind`를 배포하고 안정적인 운영을 보장합니다.
+- [ ] **전체 빌드 검증**: `croncoind`, `croncoin-cli`, `croncoin-qt`가 Linux, macOS, Windows에서 정상적으로 빌드되는지 확인합니다. 재현 가능한 빌드 방법을 공개합니다.
+- [ ] **보안 감사**: P2P 메시지 처리, 비트코인 네트워크와의 포트 격리, 피어 탐색 부트스트래핑을 감사합니다.
+- [ ] **제네시스 블록 확정**: 메인넷 제네시스 블록 파라미터가 최종 확정되었는지 확인합니다. 현재 제네시스: `00000b336ddeb4eb1fe10cf0056d5fdc8ce5ebc7e8a3de01a6906f2a04bc87fa` (2026년 2월 14일).
 
-### Phase 2: Important (Before public release)
+### 2단계: 중요 (공개 릴리스 전)
 
-- [ ] **Release Binary Builds**: Build signed release binaries for all target platforms (Linux x86_64/ARM64, macOS, Windows).
-- [ ] **Docker Image**: Create and publish official `croncoind` Docker image for easy node deployment.
-- [ ] **Node Operator Documentation**: Write mainnet setup guide, configuration best practices, and RPC API reference.
-- [ ] **Mining Documentation**: Publish mining setup guide including `getblocktemplate` usage and pool configuration.
-- [ ] **Block Explorer**: Deploy a public block explorer for the CronCoin network.
-- [ ] **Version Finalization**: Set release version (currently `1.0.0-rc0` in CMakeLists.txt), create release tags and notes.
-- [ ] **Wallet Guide**: Document wallet creation, backup/restore, and multi-sig setup.
+- [ ] **릴리스 바이너리 빌드**: 모든 대상 플랫폼(Linux x86_64/ARM64, macOS, Windows)용 서명된 릴리스 바이너리를 빌드합니다.
+- [ ] **Docker 이미지**: 공식 `croncoind` Docker 이미지를 생성하고 공개합니다.
+- [ ] **노드 운영 문서**: 메인넷 설정 가이드, 구성 모범 사례, RPC API 레퍼런스를 작성합니다.
+- [ ] **채굴 문서**: `getblocktemplate` 사용법 및 풀 설정을 포함한 채굴 가이드를 작성합니다.
+- [ ] **블록 탐색기**: CronCoin 네트워크용 공개 블록 탐색기를 배포합니다.
+- [ ] **버전 확정**: 릴리스 버전을 설정합니다 (현재 `1.0.0-rc0`). 릴리스 태그 및 릴리스 노트를 생성합니다.
+- [ ] **지갑 가이드**: 지갑 생성, 백업/복원, 다중 서명 설정 문서를 작성합니다.
 
-### Phase 3: Ecosystem (Post-launch)
+### 3단계: 생태계 (런칭 후)
 
-- [ ] **Mining Pool Software**: Adapt or deploy mining pool software compatible with CronCoin.
-- [ ] **Network Monitoring**: Set up dashboards for network health (hashrate, node count, mempool stats).
-- [ ] **Exchange Listing Preparation**: Prepare integration documentation for exchanges (RPC endpoints, confirmation requirements, address formats).
-- [ ] **Mobile Wallet**: Develop or adapt a lightweight mobile wallet (SPV or Electrum-based).
-- [ ] **Electrum Server**: Deploy ElectrumX/Fulcrum server adapted for CronCoin to support lightweight wallets.
-- [ ] **Testnet Faucet**: Set up a public testnet faucet for developers.
-- [ ] **Developer SDK/Libraries**: Publish CronCoin libraries for popular languages (Python, JavaScript, Go) for address generation, transaction building, and RPC interaction.
+- [ ] **채굴 풀 소프트웨어**: CronCoin과 호환되는 채굴 풀 소프트웨어를 적용 또는 배포합니다.
+- [ ] **네트워크 모니터링**: 네트워크 상태(해시레이트, 노드 수, 멤풀 통계) 대시보드를 구축합니다.
+- [ ] **거래소 상장 준비**: 거래소 연동을 위한 문서를 준비합니다 (RPC 엔드포인트, 확인 요구사항, 주소 형식).
+- [ ] **모바일 지갑**: SPV 또는 Electrum 기반의 경량 모바일 지갑을 개발합니다.
+- [ ] **Electrum 서버**: 경량 지갑 지원을 위해 CronCoin용 ElectrumX/Fulcrum 서버를 배포합니다.
+- [ ] **테스트넷 파우셋**: 개발자를 위한 공개 테스트넷 파우셋을 구축합니다.
+- [ ] **개발자 SDK/라이브러리**: 주요 언어(Python, JavaScript, Go)용 CronCoin 라이브러리를 공개합니다 (주소 생성, 트랜잭션 빌드, RPC 연동).
