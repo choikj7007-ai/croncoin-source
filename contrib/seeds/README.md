@@ -61,13 +61,13 @@ DNS seeds provide dynamic peer discovery. Each DNS seed is a server that respond
 
 2. Run the seeder on a server with a static IP:
    ```bash
-   ./dnsseed -h seed1.yourdomain.com -n ns1.yourdomain.com -m your@email.com -p 9333
+   ./dnsseed -h seed1.croncoin.org -n ns1.croncoin.org -m your@email.com -p 9333
    ```
 
 3. Configure DNS records:
    ```
-   seed1.yourdomain.com.    NS    ns1.yourdomain.com.
-   ns1.yourdomain.com.      A     <your-server-ip>
+   seed1.croncoin.org.    NS    ns1.croncoin.org.
+   ns1.croncoin.org.      A     <your-server-ip>
    ```
 
 ### Option B: Static DNS Records (Simple)
@@ -75,9 +75,9 @@ DNS seeds provide dynamic peer discovery. Each DNS seed is a server that respond
 For a small network, you can use static A/AAAA records:
 
 ```
-seed1.yourdomain.com.    A      203.0.113.10
-seed1.yourdomain.com.    A      198.51.100.20
-seed1.yourdomain.com.    AAAA   2001:db8::1
+seed1.croncoin.org.    A      203.0.113.10
+seed1.croncoin.org.    A      198.51.100.20
+seed1.croncoin.org.    AAAA   2001:db8::1
 ```
 
 ### Updating chainparams.cpp
@@ -86,12 +86,12 @@ Once DNS seeds are ready, update `src/kernel/chainparams.cpp`:
 
 ```cpp
 // Replace placeholder domains with your actual domains
-vSeeds.emplace_back("seed1.yourdomain.com.");
-vSeeds.emplace_back("seed2.yourdomain.com.");
-vSeeds.emplace_back("seed3.yourdomain.com.");
+vSeeds.emplace_back("seed1.croncoin.org.");
+vSeeds.emplace_back("seed2.croncoin.org.");
+vSeeds.emplace_back("seed3.croncoin.org.");
 ```
 
-Search for `croncoin.example` to find all placeholder entries.
+Search for `croncoin.org` to find all placeholder entries.
 
 ## Network Ports
 

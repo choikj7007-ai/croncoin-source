@@ -22,12 +22,12 @@ Further information about Cron Coin Core is available in the [doc folder](/doc).
 Network Specifications
 ----------------------
 
-| Parameter | Mainnet | Testnet | Regtest |
-|---|---|---|---|
-| Default Port | 9333 | 19333 | 19444 |
-| Bech32 Prefix | `crn` | `tcrn` | `crnrt` |
-| Base58 Pubkey Prefix | 28 (C...) | - | - |
-| Message Start | `c1c2c3c4` | `d1d2d3d4` | `fabfb5da` |
+| Parameter | Mainnet | Testnet | Testnet4 | Signet | Regtest |
+|---|---|---|---|---|---|
+| Default Port | 9333 | 19333 | 49333 | 39333 | 19444 |
+| Bech32 Prefix | `crn` | `tcrn` | `tcrn` | `tcrn` | `crnrt` |
+| Base58 Pubkey Prefix | 28 (C...) | 111 | 111 | 111 | - |
+| Message Start | `c1c2c3c4` | `d1d2d3d4` | `e1e2e3e4` | dynamic | `fabfb5da` |
 
 ### Address Format
 
@@ -37,6 +37,26 @@ Network Specifications
 | P2WPKH (Bech32) | `crn1...` |
 | P2TR (Taproot) | `crn1p...` |
 | Regtest Bech32 | `crnrt1...` |
+
+### DNS Seeds
+
+New nodes discover peers via DNS seed servers at `croncoin.org`:
+
+| Network | DNS Seed Hostname |
+|---|---|
+| Mainnet | `seed1.croncoin.org`, `seed2.croncoin.org`, `seed3.croncoin.org` |
+| Testnet | `testnet-seed.croncoin.org` |
+| Testnet4 | `testnet4-seed.croncoin.org` |
+| Signet | `signet-seed.croncoin.org` |
+
+Nodes can also bootstrap manually without DNS seeds:
+
+```bash
+croncoind -seednode=<ip>:9333
+croncoind -addnode=<ip>:9333
+```
+
+For details on setting up DNS seed infrastructure, see [contrib/seeds/README.md](/contrib/seeds/README.md).
 
 Fee Structure
 -------------
@@ -129,7 +149,7 @@ Mainnet Launch Roadmap
 
 ### Phase 1: Critical (Must complete before launch)
 
-- [ ] **DNS Seed Nodes**: Set up DNS seed infrastructure. Populate `contrib/seeds/nodes_main.txt` with seed node IPs and run `generate-seeds.py` to update `src/chainparamsseeds.h`.
+- [x] **DNS Seed Nodes**: DNS seed hostnames configured at `croncoin.org` (seed1/2/3, testnet-seed, testnet4-seed, signet-seed). Set up DNS seeder servers and populate `contrib/seeds/nodes_main.txt` with node IPs.
 - [ ] **Deploy Seed Nodes**: Deploy 4-6+ geographically distributed seed nodes running `croncoind` with stable uptime.
 - [ ] **Full Build Verification**: Verify `croncoind`, `croncoin-cli`, `croncoin-qt` build cleanly on Linux, macOS, and Windows. Publish reproducible build instructions.
 - [ ] **Security Audit**: Audit P2P message handling, port isolation from Bitcoin network, and peer discovery bootstrapping.

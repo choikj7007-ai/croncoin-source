@@ -133,11 +133,10 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"00000b336ddeb4eb1fe10cf0056d5fdc8ce5ebc7e8a3de01a6906f2a04bc87fa"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        // DNS seed hostnames - replace with actual domains when available
-        // To set up DNS seeds, see contrib/seeds/SETUP.md
-        vSeeds.emplace_back("seed1.croncoin.example."); // TODO: replace with real domain
-        vSeeds.emplace_back("seed2.croncoin.example."); // TODO: replace with real domain
-        vSeeds.emplace_back("seed3.croncoin.example."); // TODO: replace with real domain
+        // DNS seed hostnames for peer discovery
+        vSeeds.emplace_back("seed1.croncoin.org.");
+        vSeeds.emplace_back("seed2.croncoin.org.");
+        vSeeds.emplace_back("seed3.croncoin.org.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,28);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,50);
@@ -219,7 +218,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"000002a81970f1af5208a434649d4dd74477ea3b0db20f2e531a2933146d1444"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        vSeeds.emplace_back("testseed1.croncoin.example."); // TODO: replace with real domain
+        vSeeds.emplace_back("testnet-seed.croncoin.org.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -300,7 +299,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"00000a1a65a877e512e9b729c8b4be307008ec5cf220c676bdfd33718cb9f018"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        vSeeds.emplace_back("testnet4seed1.croncoin.example."); // TODO: replace with real domain
+        vSeeds.emplace_back("testnet4-seed.croncoin.org.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -333,7 +332,7 @@ public:
     explicit SigNetParams(const SigNetOptions& options)
     {
         std::vector<uint8_t> bin;
-        vSeeds.emplace_back("signetseed1.croncoin.example."); // TODO: replace with real domain
+        vSeeds.emplace_back("signet-seed.croncoin.org.");
         vFixedSeeds.assign(chainparams_seed_signet, chainparams_seed_signet + sizeof(chainparams_seed_signet));
 
         if (!options.challenge) {
