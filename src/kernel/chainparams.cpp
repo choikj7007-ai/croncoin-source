@@ -133,8 +133,11 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"00000b336ddeb4eb1fe10cf0056d5fdc8ce5ebc7e8a3de01a6906f2a04bc87fa"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        vFixedSeeds.clear();
-        vSeeds.clear();
+        // DNS seed hostnames - replace with actual domains when available
+        // To set up DNS seeds, see contrib/seeds/SETUP.md
+        vSeeds.emplace_back("seed1.croncoin.example."); // TODO: replace with real domain
+        vSeeds.emplace_back("seed2.croncoin.example."); // TODO: replace with real domain
+        vSeeds.emplace_back("seed3.croncoin.example."); // TODO: replace with real domain
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,28);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,50);
@@ -144,7 +147,9 @@ public:
 
         bech32_hrp = "crn";
 
-        vFixedSeeds.clear();
+        // Fixed seed nodes (hardcoded IPs) - loaded from chainparamsseeds.h
+        // These serve as fallback when DNS seeds are unreachable
+        vFixedSeeds.assign(chainparams_seed_main, chainparams_seed_main + sizeof(chainparams_seed_main));
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
@@ -214,8 +219,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"000002a81970f1af5208a434649d4dd74477ea3b0db20f2e531a2933146d1444"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        vFixedSeeds.clear();
-        vSeeds.clear();
+        vSeeds.emplace_back("testseed1.croncoin.example."); // TODO: replace with real domain
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -225,7 +229,7 @@ public:
 
         bech32_hrp = "tcrn";
 
-        vFixedSeeds.clear();
+        vFixedSeeds.assign(chainparams_seed_test, chainparams_seed_test + sizeof(chainparams_seed_test));
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
@@ -296,8 +300,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256{"00000a1a65a877e512e9b729c8b4be307008ec5cf220c676bdfd33718cb9f018"});
         assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
 
-        vFixedSeeds.clear();
-        vSeeds.clear();
+        vSeeds.emplace_back("testnet4seed1.croncoin.example."); // TODO: replace with real domain
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -307,7 +310,7 @@ public:
 
         bech32_hrp = "tcrn";
 
-        vFixedSeeds.clear();
+        vFixedSeeds.assign(chainparams_seed_testnet4, chainparams_seed_testnet4 + sizeof(chainparams_seed_testnet4));
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
@@ -330,8 +333,8 @@ public:
     explicit SigNetParams(const SigNetOptions& options)
     {
         std::vector<uint8_t> bin;
-        vFixedSeeds.clear();
-        vSeeds.clear();
+        vSeeds.emplace_back("signetseed1.croncoin.example."); // TODO: replace with real domain
+        vFixedSeeds.assign(chainparams_seed_signet, chainparams_seed_signet + sizeof(chainparams_seed_signet));
 
         if (!options.challenge) {
             bin = "512103ad5e0edad18cb1f0fc0d28a3d4f1f3e445640337489abb10404f2d1e086be430210359ef5021964fe22d6f8e05b2463c9540ce96883fe3b278760f048f5189f2e6c452ae"_hex_v_u8;

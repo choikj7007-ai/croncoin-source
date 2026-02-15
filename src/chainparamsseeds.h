@@ -1,3 +1,7 @@
+// Copyright (c) The CronCoin Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or https://opensource.org/license/mit.
+
 #ifndef CRONCOIN_CHAINPARAMSSEEDS_H
 #define CRONCOIN_CHAINPARAMSSEEDS_H
 /**
@@ -6,9 +10,15 @@
  *
  * Each line contains a BIP155 serialized (networkID, addr, port) tuple.
  */
-static const uint8_t chainparams_seed_main[] = {};
-static const uint8_t chainparams_seed_test[] = {};
-static const uint8_t chainparams_seed_testnet4[] = {};
-static const uint8_t chainparams_seed_signet[] = {};
+static const uint8_t chainparams_seed_main[] = {
+};
 
+static const uint8_t chainparams_seed_signet[] = {
+};
+
+static const uint8_t chainparams_seed_test[] = {
+};
+
+static const uint8_t chainparams_seed_testnet4[] = {
+};
 #endif // CRONCOIN_CHAINPARAMSSEEDS_H
