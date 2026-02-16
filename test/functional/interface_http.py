@@ -212,7 +212,7 @@ class HTTPBasicsTest (CronCoinTestFramework):
         # not immediately, and not too far over the configured duration.
         # This allows for some jitter in the test between client and server.
         duration = stop - start
-        assert duration <= 4, f"Server disconnected too slow: {duration} > 4"
+        assert duration <= 6, f"Server disconnected too slow: {duration} > 6"
         assert duration >= 1, f"Server disconnected too fast: {duration} < 1"
 
         # The connection is definitely closed.

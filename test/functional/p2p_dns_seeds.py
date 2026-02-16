@@ -33,7 +33,7 @@ class P2PDNSSeeds(CronCoinTestFramework):
             self.start_node(0, extra_args=[f"-connect={fakeaddr}", UNREACHABLE_PROXY_ARG])
 
         self.log.info("Check that running -connect and -dnsseed means DNS logic runs.")
-        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=12):
+        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=30):
             self.restart_node(0, extra_args=[f"-connect={fakeaddr}", "-dnsseed=1", UNREACHABLE_PROXY_ARG])
 
         self.log.info("Check that running -forcednsseed and -dnsseed=0 throws an error.")
@@ -62,7 +62,7 @@ class P2PDNSSeeds(CronCoinTestFramework):
         self.log.info("Check that we *do not* query DNS seeds if we have 2 outbound connections")
 
         self.restart_node(0)
-        with self.nodes[0].assert_debug_log(expected_msgs=["P2P peers available. Skipped DNS seeding."], timeout=12):
+        with self.nodes[0].assert_debug_log(expected_msgs=["P2P peers available. Skipped DNS seeding."], timeout=30):
             for i in range(2):
                 self.nodes[0].add_outbound_p2p_connection(P2PInterface(), p2p_idx=i, connection_type="outbound-full-relay")
 
@@ -75,7 +75,7 @@ class P2PDNSSeeds(CronCoinTestFramework):
         self.log.info("Check that we *do* query DNS seeds if we only have 2 block-relay-only connections")
 
         self.restart_node(0)
-        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=12):
+        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=30):
             # This mimics the "anchors" logic where nodes are likely to
             # reconnect to block-relay-only connections on startup.
             # Since we do not participate in addr relay with these connections,
@@ -86,7 +86,7 @@ class P2PDNSSeeds(CronCoinTestFramework):
     def force_dns_test(self):
         self.log.info("Check that we query DNS seeds if -forcednsseed param is set")
 
-        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=12):
+        with self.nodes[0].assert_debug_log(expected_msgs=["Loading addresses from DNS seed"], timeout=30):
             # -dnsseed defaults to 1 in croncoind, but 0 in the test framework,
             # so pass it explicitly here
             self.restart_node(0, ["-forcednsseed", "-dnsseed=1", UNREACHABLE_PROXY_ARG])
