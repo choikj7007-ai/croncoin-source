@@ -14,7 +14,7 @@ order to maximally raise the difficulty. Verify this using the getmininginfo RPC
 
 """
 
-from test_framework.test_framework import CronCoinTestFramework, SkipTest
+from test_framework.test_framework import CronCoinTestFramework
 from test_framework.util import (
     assert_equal,
 )
@@ -74,10 +74,7 @@ class MiningMainnetTest(CronCoinTestFramework):
         return prev_hash
 
 
-    # The pregenerated block data in mainnet_alt.json was mined against
-    # Bitcoin's mainnet genesis block. If this chain uses a different genesis
-    # block (e.g. CronCoin), the blocks won't connect, so skip the test.
-    EXPECTED_GENESIS_HASH = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+    EXPECTED_GENESIS_HASH = "00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab"
 
     def run_test(self):
         node = self.nodes[0]
@@ -86,12 +83,7 @@ class MiningMainnetTest(CronCoinTestFramework):
         node.stderr.truncate()
 
         genesis_hash = node.getbestblockhash()
-        if genesis_hash != self.EXPECTED_GENESIS_HASH:
-            raise SkipTest(
-                f"Pregenerated block data requires Bitcoin mainnet genesis block "
-                f"({self.EXPECTED_GENESIS_HASH}), but this chain has genesis "
-                f"{genesis_hash}. Skipping test."
-            )
+        assert_equal(genesis_hash, self.EXPECTED_GENESIS_HASH)
 
         self.log.info("Load alternative mainnet blocks")
         path = os.path.join(os.path.dirname(os.path.realpath(__file__)), self.options.datafile)
@@ -114,8 +106,11 @@ class MiningMainnetTest(CronCoinTestFramework):
         assert_equal(mining_info['bits'], nbits_str(DIFF_1_N_BITS))
         assert_equal(mining_info['target'], target_str(DIFF_1_TARGET))
 
+        # Difficulty is DIFF_1 mantissa / DIFF_4 mantissa (not exactly 4 due to lossy nBits encoding).
+        # Use float() because RPC returns Decimal (via parse_float=Decimal).
+        expected_diff_4 = (DIFF_1_N_BITS & 0xffffff) / (DIFF_4_N_BITS & 0xffffff)
         assert_equal(mining_info['next']['height'], 2016)
-        assert_equal(mining_info['next']['difficulty'], 4)
+        assert_equal(float(mining_info['next']['difficulty']), expected_diff_4)
         assert_equal(mining_info['next']['bits'], nbits_str(DIFF_4_N_BITS))
         assert_equal(mining_info['next']['target'], target_str(DIFF_4_TARGET))
 
@@ -125,7 +120,7 @@ class MiningMainnetTest(CronCoinTestFramework):
         assert_equal(node.getblockcount(), height)
 
         mining_info = node.getmininginfo()
-        assert_equal(mining_info['difficulty'], 4)
+        assert_equal(float(mining_info['difficulty']), expected_diff_4)
 
         self.log.info("getblock RPC should show historical target")
         block_info = node.getblock(node.getblockhash(1))

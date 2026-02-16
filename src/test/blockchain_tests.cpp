@@ -55,27 +55,27 @@ BOOST_FIXTURE_TEST_SUITE(blockchain_tests, BasicTestingSetup)
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_very_low_target)
 {
-    TestDifficulty(0x1f111111, 0.000001);
+    TestDifficulty(0x1f111111, 0.003662);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_low_target)
 {
-    TestDifficulty(0x1ef88f6f, 0.000016);
+    TestDifficulty(0x1ef88f6f, 0.064371);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_mid_target)
 {
-    TestDifficulty(0x1df88f6f, 0.004023);
+    TestDifficulty(0x1df88f6f, 16.478884);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_high_target)
 {
-    TestDifficulty(0x1cf88f6f, 1.029916);
+    TestDifficulty(0x1cf88f6f, 4218.594252);
 }
 
 BOOST_AUTO_TEST_CASE(get_difficulty_for_very_high_target)
 {
-    TestDifficulty(0x12345678, 5913134931067755359633408.0);
+    TestDifficulty(0x12345678, 2.4220547155690227e+28);
 }
 
 //! Prune chain from height down to genesis block and check that

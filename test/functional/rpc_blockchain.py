@@ -489,9 +489,10 @@ class BlockchainTest(CronCoinTestFramework):
     def _test_getdifficulty(self):
         self.log.info("Test getdifficulty")
         difficulty = self.nodes[0].getdifficulty()
-        # 1 hash in 2 should be valid, so difficulty should be 1/2**31
-        # binary => decimal => binary math is why we do this check
-        assert abs(difficulty * 2**31 - 1) < 10
+        # 1 hash in 2 should be valid, so difficulty should be 1/2**19
+        # (CronCoin's difficulty-1 reference is nBits 0x1e0fffff, 12 bits
+        # closer to regtest's 0x207fffff than Bitcoin's 0x1d00ffff)
+        assert abs(difficulty * 2**19 - 1) < 10
 
     def _test_getnetworkhashps(self):
         self.log.info("Test getnetworkhashps")
