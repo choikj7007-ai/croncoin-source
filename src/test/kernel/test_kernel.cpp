@@ -671,25 +671,25 @@ BOOST_AUTO_TEST_CASE(btck_block_header_tests)
     BOOST_CHECK_THROW(BlockHeader{hex_string_to_byte_vec("00")}, std::runtime_error);
     BOOST_CHECK_THROW(BlockHeader{hex_string_to_byte_vec("")}, std::runtime_error);
 
-    // Test all header field accessors using mainnet block 1
-    auto mainnet_block_1_header = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e36299");
+    // Test all header field accessors using CronCoin mainnet block 1
+    auto mainnet_block_1_header = hex_string_to_byte_vec("00000020ab08e23ba5d74197460e017555f40bd88f4741d6c8f5956530e086010b0a000008a53076d371805e5381223aee7de62db8018b0570ecb2960d2bb43a8bcace9e9e87ae67ffff0f1ec0550c00");
     BlockHeader header{mainnet_block_1_header};
-    BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 2573394689);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048");
+    BOOST_CHECK_EQUAL(header.Version(), 0x20000000);
+    BOOST_CHECK_EQUAL(header.Timestamp(), 1739491230);
+    BOOST_CHECK_EQUAL(header.Bits(), 0x1e0fffff);
+    BOOST_CHECK_EQUAL(header.Nonce(), 808384);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "0000074475c4d17c98ff9c039f99ec3d34870f162d9d21464bcc0e6be3189064");
     auto prev_hash = header.PrevHash();
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab");
 
-    auto raw_block = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e362990101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0704ffff001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e61ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f8141781e62294721166bf621e73a82cbf2342c858eeac00000000");
+    auto raw_block = hex_string_to_byte_vec("00000020ab08e23ba5d74197460e017555f40bd88f4741d6c8f5956530e086010b0a000008a53076d371805e5381223aee7de62db8018b0570ecb2960d2bb43a8bcace9e9e87ae67ffff0f1ec0550c000102000000010000000000000000000000000000000000000000000000000000000000000000ffffffff025100ffffffff010046c323000000001976a914eadbac7f36c37e39361168b7aaee3cb24a25312d88ac00000000");
     Block block{raw_block};
     BlockHeader block_header{block.GetHeader()};
-    BOOST_CHECK_EQUAL(block_header.Version(), 1);
-    BOOST_CHECK_EQUAL(block_header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(block_header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(block_header.Nonce(), 2573394689);
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), "00000000839a8e6886ab5951d76f411475428afc90947ee320161bbf18eb6048");
+    BOOST_CHECK_EQUAL(block_header.Version(), 0x20000000);
+    BOOST_CHECK_EQUAL(block_header.Timestamp(), 1739491230);
+    BOOST_CHECK_EQUAL(block_header.Bits(), 0x1e0fffff);
+    BOOST_CHECK_EQUAL(block_header.Nonce(), 808384);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(block_header.Hash().ToBytes()), "0000074475c4d17c98ff9c039f99ec3d34870f162d9d21464bcc0e6be3189064");
 }
 
 BOOST_AUTO_TEST_CASE(btck_block)
@@ -855,16 +855,16 @@ void chainman_mainnet_validation_test(TestDirectory& test_directory)
         test_directory, /*reindex=*/false, /*wipe_chainstate=*/false,
         /*block_tree_db_in_memory=*/false, /*chainstate_db_in_memory=*/false, context)};
 
-    // mainnet block 1
-    auto raw_block = hex_string_to_byte_vec("010000006fe28c0ab6f1b372c1a6a246ae63f74f931e8365e15a089c68d6190000000000982051fd1e4ba744bbbe680e1fee14677ba1a3c3540bf7b1cdb606e857233e0e61bc6649ffff001d01e362990101000000010000000000000000000000000000000000000000000000000000000000000000ffffffff0704ffff001d0104ffffffff0100f2052a0100000043410496b538e853519c726a2c91e61ec11600ae1390813a627c66fb8be7947be63c52da7589379515d4e0a604f8141781e62294721166bf621e73a82cbf2342c858eeac00000000");
+    // CronCoin mainnet block 1
+    auto raw_block = hex_string_to_byte_vec("00000020ab08e23ba5d74197460e017555f40bd88f4741d6c8f5956530e086010b0a000008a53076d371805e5381223aee7de62db8018b0570ecb2960d2bb43a8bcace9e9e87ae67ffff0f1ec0550c000102000000010000000000000000000000000000000000000000000000000000000000000000ffffffff025100ffffffff010046c323000000001976a914eadbac7f36c37e39361168b7aaee3cb24a25312d88ac00000000");
     Block block{raw_block};
     BlockHeader header{block.GetHeader()};
     TransactionView tx{block.GetTransaction(block.CountTransactions() - 1)};
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), "0e3e2357e806b6cdb1f70b54c3a3a17b6714ee1f0e68bebb44a74b1efd512098");
-    BOOST_CHECK_EQUAL(header.Version(), 1);
-    BOOST_CHECK_EQUAL(header.Timestamp(), 1231469665);
-    BOOST_CHECK_EQUAL(header.Bits(), 0x1d00ffff);
-    BOOST_CHECK_EQUAL(header.Nonce(), 2573394689);
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(tx.Txid().ToBytes()), "9ececa8b3ab42b0d96b2ec70058b01b82de67dee3a2281535e8071d37630a508");
+    BOOST_CHECK_EQUAL(header.Version(), 0x20000000);
+    BOOST_CHECK_EQUAL(header.Timestamp(), 1739491230);
+    BOOST_CHECK_EQUAL(header.Bits(), 0x1e0fffff);
+    BOOST_CHECK_EQUAL(header.Nonce(), 808384);
     BOOST_CHECK_EQUAL(tx.CountInputs(), 1);
     Transaction tx2 = tx;
     BOOST_CHECK_EQUAL(tx2.CountInputs(), 1);
@@ -1132,7 +1132,7 @@ BOOST_AUTO_TEST_CASE(btck_chainman_regtest_tests)
     TransactionOutputView output = coin.GetOutput();
     uint32_t coin_height = coin.GetConfirmationHeight();
     BOOST_CHECK_EQUAL(coin_height, 205);
-    BOOST_CHECK_EQUAL(output.Amount(), 100000000);
+    BOOST_CHECK_EQUAL(output.Amount(), 99997);
 
     // Test script pubkey serialization
     auto script_pubkey = output.GetScriptPubkey();
