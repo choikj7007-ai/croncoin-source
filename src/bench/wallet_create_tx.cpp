@@ -158,7 +158,7 @@ static void WalletCreateTx(benchmark::Bench& bench, const OutputType output_type
     }
 
     // If automatic coin selection is enabled, add the value of another UTXO to the target
-    if (coin_control.m_allow_other_inputs) target += 500000 * COIN;
+    if (coin_control.m_allow_other_inputs) target += 600000 * COIN;
     std::vector<wallet::CRecipient> recipients = {{dest, target, true}};
 
     bench.run([&] {

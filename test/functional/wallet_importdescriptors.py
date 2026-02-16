@@ -716,7 +716,7 @@ class ImportDescriptorsTest(CronCoinTestFramework):
 
         encrypted_wallet.walletpassphrase("passphrase", 99999)
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as thread:
-            with self.nodes[0].assert_debug_log(expected_msgs=["Rescan started from block 0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5... (slow variant inspecting all blocks)"], timeout=10):
+            with self.nodes[0].assert_debug_log(expected_msgs=["Rescan started from block 1e13e74316f12ae716da471be46d915d4d4d5600ba20d023e42e25f8359cba20... (slow variant inspecting all blocks)"], timeout=10):
                 importing = thread.submit(encrypted_wallet.importdescriptors, requests=[descriptor])
 
             # Set the passphrase timeout to 1 to test that the wallet remains unlocked during the rescan

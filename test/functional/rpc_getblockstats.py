@@ -172,7 +172,7 @@ class GetblockstatsTest(CronCoinTestFramework):
 
         self.log.info('Test block height 0')
         genesis_stats = self.nodes[0].getblockstats(0)
-        assert_equal(genesis_stats["blockhash"], "0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5")
+        assert_equal(genesis_stats["blockhash"], "1e13e74316f12ae716da471be46d915d4d4d5600ba20d023e42e25f8359cba20")
         assert_equal(genesis_stats["utxo_increase"], 1)
         assert_equal(genesis_stats["utxo_size_inc"], 117)
         assert_equal(genesis_stats["utxo_increase_actual"], 0)
@@ -180,10 +180,10 @@ class GetblockstatsTest(CronCoinTestFramework):
 
         self.log.info('Test tip including OP_RETURN')
         tip_stats = self.nodes[0].getblockstats(tip)
-        assert_equal(tip_stats["utxo_increase"], 6)
-        assert_equal(tip_stats["utxo_size_inc"], 450)
-        assert_equal(tip_stats["utxo_increase_actual"], 4)
-        assert_equal(tip_stats["utxo_size_inc_actual"], 309)
+        assert_equal(tip_stats["utxo_increase"], 5)
+        assert_equal(tip_stats["utxo_size_inc"], 375)
+        assert_equal(tip_stats["utxo_increase_actual"], 3)
+        assert_equal(tip_stats["utxo_size_inc_actual"], 234)
 
         self.log.info("Test when only header is known")
         block = self.generateblock(self.nodes[0], output="raw(55)", transactions=[], submit=False)

@@ -69,7 +69,7 @@ class MiningTest(CronCoinTestFramework):
 
     def mine_chain(self):
         self.log.info('Create some old blocks')
-        for t in range(TIME_GENESIS_BLOCK, TIME_GENESIS_BLOCK + 200 * 600, 600):
+        for t in range(TIME_GENESIS_BLOCK, TIME_GENESIS_BLOCK + 200 * 180, 180):
             self.nodes[0].setmocktime(t)
             self.generate(self.wallet, 1, sync_fun=self.no_op)
         mining_info = self.nodes[0].getmininginfo()
@@ -395,7 +395,7 @@ class MiningTest(CronCoinTestFramework):
         assert_equal(mining_info['next']['target'], target_str(REGTEST_TARGET))
         assert_equal(mining_info['next']['bits'], nbits_str(REGTEST_N_BITS))
         assert_equal(round(mining_info['next']['difficulty'], 5), Decimal('0'))
-        assert_equal(round(mining_info['networkhashps'], 5), Decimal('0.00333'))
+        assert_equal(round(mining_info['networkhashps'], 5), Decimal('0.01111'))
         assert_equal(mining_info['pooledtx'], 0)
 
         self.log.info("getblocktemplate: Test default witness commitment")

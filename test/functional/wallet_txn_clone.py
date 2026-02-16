@@ -48,8 +48,8 @@ class TxnMallTest(CronCoinTestFramework):
         else:
             output_type = "legacy"
 
-        # All nodes should start with 12,500,000 CRN:
-        starting_balance = 12500000
+        # All nodes should start with 15,000,000 CRN:
+        starting_balance = 15000000
         for i in range(3):
             assert_equal(self.nodes[i].getbalance(), starting_balance)
 
@@ -103,7 +103,7 @@ class TxnMallTest(CronCoinTestFramework):
         # matured block, minus tx1 and tx2 amounts, and minus transaction fees:
         expected = starting_balance + node0_tx1["fee"] + node0_tx2["fee"]
         if self.options.mine_block:
-            expected += 500000
+            expected += 600000
         expected += tx1["amount"] + tx1["fee"]
         expected += tx2["amount"] + tx2["fee"]
         assert_equal(self.nodes[0].getbalance(), expected)
@@ -141,11 +141,11 @@ class TxnMallTest(CronCoinTestFramework):
         assert_equal(tx1_clone["confirmations"], 2)
         assert_equal(tx2["confirmations"], 1)
 
-        # Check node0's total balance; should be same as before the clone, + 1000000 CRN for 2 matured,
+        # Check node0's total balance; should be same as before the clone, + 1200000 CRN for 2 matured,
         # less possible orphaned matured subsidy
-        expected += 1000000
+        expected += 1200000
         if (self.options.mine_block):
-            expected -= 500000
+            expected -= 600000
         assert_equal(self.nodes[0].getbalance(), expected)
 
 

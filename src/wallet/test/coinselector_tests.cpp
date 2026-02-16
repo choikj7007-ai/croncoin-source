@@ -504,10 +504,10 @@ BOOST_AUTO_TEST_CASE(knapsack_solver_test)
         for (int j = 0; j < 20; j++)
             add_coin(available_coins, *wallet, 50000 * COIN);
 
-        const auto result19 = KnapsackSolver(KnapsackGroupOutputs(available_coins, *wallet, filter_confirmed), 500000 * COIN, CENT);
+        const auto result19 = KnapsackSolver(KnapsackGroupOutputs(available_coins, *wallet, filter_confirmed), 600000 * COIN, CENT);
         BOOST_CHECK(result19);
-        BOOST_CHECK_EQUAL(result19->GetSelectedValue(), 500000 * COIN); // we should get the exact amount
-        BOOST_CHECK_EQUAL(result19->GetInputSet().size(), 10U); // in ten coins
+        BOOST_CHECK_EQUAL(result19->GetSelectedValue(), 600000 * COIN); // we should get the exact amount
+        BOOST_CHECK_EQUAL(result19->GetInputSet().size(), 12U); // in twelve coins
 
         // if there's not enough in the smaller coins to make at least 1 * CENT change (0.5+0.6+0.7 < 1.0+1.0),
         // we need to try finding an exact subset anyway

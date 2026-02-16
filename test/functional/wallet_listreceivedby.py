@@ -187,7 +187,7 @@ class ReceivedByTest(CronCoinTestFramework):
         label = "label"
         address = self.nodes[0].getnewaddress(label)
 
-        reward = Decimal("250000")
+        reward = Decimal("300000")
         self.generatetoaddress(self.nodes[0], 1, address)
         hash = self.nodes[0].getbestblockhash()
 

@@ -38,7 +38,7 @@ class SimulateTxTest(CronCoinTestFramework):
         w2 = node.get_wallet_rpc('w2')
 
         self.generatetoaddress(node, COINBASE_MATURITY + 1, w0.getnewaddress())
-        assert_equal(w0.getbalance(), 500000.0)
+        assert_equal(w0.getbalance(), 600000.0)
         assert_equal(w1.getbalance(), 0.0)
 
         address1 = w1.getnewaddress()

@@ -31,7 +31,7 @@ BOOST_FIXTURE_TEST_CASE(SubtractFee, TestChain100Setup)
     // leftover input amount which would have been change to the recipient
     // instead of the miner.
     auto check_tx = [&wallet](CAmount leftover_input_amount) {
-        CRecipient recipient{PubKeyDestination({}), 500000 * COIN - leftover_input_amount, /*subtract_fee=*/true};
+        CRecipient recipient{PubKeyDestination({}), 600000 * COIN - leftover_input_amount, /*subtract_fee=*/true};
         CCoinControl coin_control;
         coin_control.m_feerate.emplace(100);
         coin_control.fOverrideFeeRate = true;
@@ -81,9 +81,9 @@ BOOST_FIXTURE_TEST_CASE(wallet_duplicated_preset_inputs_test, TestChain100Setup)
     std::set<COutPoint> preset_inputs = {coins[0].outpoint, coins[1].outpoint, coins[2].outpoint};
 
     // Try to create a tx that spends more than what preset inputs + wallet selected inputs are covering for.
-    // The wallet can cover up to 4 * 500000 CRN = 2,000,000 CRN, and the tx target exceeds that.
+    // The wallet can cover up to 4 * 600000 CRN = 2,400,000 CRN, and the tx target exceeds that.
     std::vector<CRecipient> recipients{{*Assert(wallet->GetNewDestination(OutputType::BECH32, "dummy")),
-                                           /*nAmount=*/2500000 * COIN, /*fSubtractFeeFromAmount=*/true}};
+                                           /*nAmount=*/3000000 * COIN, /*fSubtractFeeFromAmount=*/true}};
     CCoinControl coin_control;
     coin_control.m_allow_other_inputs = true;
     for (const auto& outpoint : preset_inputs) {

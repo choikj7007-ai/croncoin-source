@@ -192,7 +192,7 @@ class RawTransactionsTest(CronCoinTestFramework):
     def test_change_position(self):
         """Ensure setting changePosition in fundraw with an exact match is handled properly."""
         self.log.info("Test fundrawtxn changePosition option")
-        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():500000})
+        rawmatch = self.nodes[2].createrawtransaction([], {self.nodes[2].getnewaddress():600000})
         rawmatch = self.nodes[2].fundrawtransaction(rawmatch, changePosition=1, subtractFeeFromOutputs=[0])
         assert_equal(rawmatch["changepos"], -1)
 
@@ -678,7 +678,7 @@ class RawTransactionsTest(CronCoinTestFramework):
             self.generate(self.nodes[1], 1)
 
             # Make sure funds are received at node1.
-            assert_equal(oldBalance+Decimal('500001.1'), self.nodes[0].getbalance())
+            assert_equal(oldBalance+Decimal('600001.1'), self.nodes[0].getbalance())
 
             # Restore pre-test wallet state
             wallet.sendall(recipients=[df_wallet.getnewaddress(), df_wallet.getnewaddress(), df_wallet.getnewaddress()])
@@ -733,7 +733,7 @@ class RawTransactionsTest(CronCoinTestFramework):
         fundedAndSignedTx = self.nodes[1].signrawtransactionwithwallet(fundedTx['hex'])
         self.nodes[1].sendrawtransaction(fundedAndSignedTx['hex'])
         self.generate(self.nodes[1], 1)
-        assert_equal(oldBalance+Decimal('500001.9'), self.nodes[0].getbalance()) #1.9+block reward
+        assert_equal(oldBalance+Decimal('600001.9'), self.nodes[0].getbalance()) #1.9+block reward
 
     def test_op_return(self):
         self.log.info("Test fundrawtxn with OP_RETURN and no vin")

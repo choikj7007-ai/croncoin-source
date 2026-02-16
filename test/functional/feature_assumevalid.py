@@ -61,9 +61,11 @@ from test_framework.wallet_util import generate_keypair
 
 class BaseNode(P2PInterface):
     def send_header_for_blocks(self, new_blocks):
-        headers_message = msg_headers()
-        headers_message.headers = [CBlockHeader(b) for b in new_blocks]
-        self.send_without_ping(headers_message)
+        # Chunk into batches of 2000 (MAX_HEADERS_RESULTS)
+        for i in range(0, len(new_blocks), 2000):
+            headers_message = msg_headers()
+            headers_message.headers = [CBlockHeader(b) for b in new_blocks[i:i+2000]]
+            self.send_without_ping(headers_message)
 
 
 class AssumeValidTest(CronCoinTestFramework):
@@ -133,8 +135,9 @@ class AssumeValidTest(CronCoinTestFramework):
         self.block_time += 1
         height += 1
 
-        # Bury the assumed valid block 2100 deep
-        for _ in range(2100):
+        # Bury the assumed valid block deep enough so GetBlockProofEquivalentTime
+        # exceeds TWO_WEEKS_IN_SECONDS (1209600s). With 180s target spacing: 1209600/180 = 6720
+        for _ in range(6800):
             block = create_block(self.tip, create_coinbase(height), self.block_time)
             block.solve()
             self.blocks.append(block)
@@ -158,8 +161,7 @@ class AssumeValidTest(CronCoinTestFramework):
         ]):
             p2p0 = self.nodes[0].add_p2p_connection(BaseNode())
 
-            p2p0.send_header_for_blocks(self.blocks[0:2000])
-            p2p0.send_header_for_blocks(self.blocks[2000:])
+            p2p0.send_header_for_blocks(self.blocks)
 
             self.send_blocks_until_disconnected(p2p0)
             self.wait_until(lambda: self.nodes[0].getblockcount() >= COINBASE_MATURITY + 1)
@@ -174,14 +176,13 @@ class AssumeValidTest(CronCoinTestFramework):
         ]):
             p2p1 = self.nodes[1].add_p2p_connection(BaseNode())
 
-            p2p1.send_header_for_blocks(self.blocks[0:2000])
-            p2p1.send_header_for_blocks(self.blocks[2000:])
+            p2p1.send_header_for_blocks(self.blocks)
             # Send all blocks to node1. All blocks will be accepted.
-            for i in range(2202):
+            for i in range(len(self.blocks)):
                 p2p1.send_without_ping(msg_block(self.blocks[i]))
-            # Syncing 2200 blocks can take a while on slow systems. Give it plenty of time to sync.
+            # Syncing many blocks can take a while on slow systems. Give it plenty of time to sync.
             p2p1.sync_with_ping(timeout=960)
-            assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], 2202)
+            assert_equal(self.nodes[1].getblock(self.nodes[1].getbestblockhash())['height'], len(self.blocks))
 
 
         # nodes[2]

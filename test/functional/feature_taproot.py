@@ -1660,7 +1660,7 @@ class TaprootTest(CronCoinTestFramework):
         coinbase = CTransaction()
         coinbase.version = 1
         coinbase.vin = [CTxIn(COutPoint(0, 0xffffffff), CScript([OP_1, OP_1]), SEQUENCE_FINAL)]
-        coinbase.vout = [CTxOut(500000000, CScript([OP_1]))]
+        coinbase.vout = [CTxOut(600000000, CScript([OP_1]))]
         coinbase.nLockTime = 0
         # Mine it
         block = create_block(hashprev=int(self.nodes[0].getbestblockhash(), 16), coinbase=coinbase)
@@ -1743,7 +1743,7 @@ class TaprootTest(CronCoinTestFramework):
         # come from distinct txids).
         txn = []
         lasttxid = coinbase.txid_int
-        amount = 500000000
+        amount = 600000000
         for i, spk in enumerate(old_spks + tap_spks):
             val = 4200000 * (i + 7)
             tx = CTransaction()
@@ -1870,7 +1870,7 @@ class TaprootTest(CronCoinTestFramework):
         aux = tx_test.setdefault("auxiliary", {})
         aux['fullySignedTx'] = tx.serialize().hex()
         keypath_tests.append(tx_test)
-        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "f1c10bc4845ace07911b4f516a683a5db852dada1ef7fa041e4d41a02d2b095d")
+        assert_equal(hashlib.sha256(tx.serialize()).hexdigest(), "d7ac8c9302677e9596241747c6b55aeb37ab9d88027e6b452031b0a98a7ab984")
         # Mine the spending transaction
         self.block_submit(self.nodes[0], [tx], "Spending txn", None, sigops_weight=10000, accept=True, witness=True)
 

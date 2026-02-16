@@ -55,6 +55,7 @@ CreateAndActivateUTXOSnapshot(
     LogInfo("Wrote UTXO snapshot to %s: %s",
             fs::PathToString(snapshot_path.make_preferred()), result.write());
 
+
     // Read the written snapshot in and then activate it.
     //
     FILE* infile{fsbridge::fopen(snapshot_path, "rb")};

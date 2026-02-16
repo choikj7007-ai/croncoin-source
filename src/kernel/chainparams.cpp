@@ -82,7 +82,7 @@ public:
         m_chain_type = ChainType::MAIN;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 210000;
+        consensus.nSubsidyHalvingInterval = 175000;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 1;
@@ -91,8 +91,8 @@ public:
         consensus.SegwitHeight = 1;
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 2016 * 3 * 60; // 2016 blocks * 3 min
+        consensus.nPowTargetSpacing = 3 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
@@ -128,10 +128,10 @@ public:
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 
-        genesis = CreateGenesisBlock(1739491200, 472880, 0x1e0fffff, 1, 500000 * COIN);
+        genesis = CreateGenesisBlock(1739491200, 696086, 0x1e0fffff, 1, 600000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"00000b336ddeb4eb1fe10cf0056d5fdc8ce5ebc7e8a3de01a6906f2a04bc87fa"});
-        assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
+        assert(consensus.hashGenesisBlock == uint256{"00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab"});
+        assert(genesis.hashMerkleRoot == uint256{"01fe7bbfc54f833caa6dc25df74887c5ecc9dfc41723e09c686ed9f45e7b8538"});
 
         // DNS seed hostnames for peer discovery
         vSeeds.emplace_back("seed1.croncoin.org.");
@@ -172,7 +172,7 @@ public:
         m_chain_type = ChainType::TESTNET;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 210000;
+        consensus.nSubsidyHalvingInterval = 175000;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 1;
@@ -181,8 +181,8 @@ public:
         consensus.SegwitHeight = 1;
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 2016 * 3 * 60; // 2016 blocks * 3 min
+        consensus.nPowTargetSpacing = 3 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
@@ -213,10 +213,10 @@ public:
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 
-        genesis = CreateGenesisBlock(1739491201, 3018768, 0x1e0fffff, 1, 500000 * COIN);
+        genesis = CreateGenesisBlock(1739491201, 26558, 0x1e0fffff, 1, 600000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"000002a81970f1af5208a434649d4dd74477ea3b0db20f2e531a2933146d1444"});
-        assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
+        assert(consensus.hashGenesisBlock == uint256{"00000e87b69b1253606c84d694c72a9cc5675c72bd1b53bb2ed2b68cd053a763"});
+        assert(genesis.hashMerkleRoot == uint256{"01fe7bbfc54f833caa6dc25df74887c5ecc9dfc41723e09c686ed9f45e7b8538"});
 
         vSeeds.emplace_back("testnet-seed.croncoin.org.");
 
@@ -252,7 +252,7 @@ public:
         m_chain_type = ChainType::TESTNET4;
         consensus.signet_blocks = false;
         consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 210000;
+        consensus.nSubsidyHalvingInterval = 175000;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 1;
@@ -261,8 +261,8 @@ public:
         consensus.SegwitHeight = 1;
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256{"00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 2016 * 3 * 60; // 2016 blocks * 3 min
+        consensus.nPowTargetSpacing = 3 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = true;
         consensus.fPowNoRetargeting = false;
@@ -294,10 +294,10 @@ public:
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 
-        genesis = CreateGenesisBlock(1739491202, 1699033, 0x1e0fffff, 1, 500000 * COIN);
+        genesis = CreateGenesisBlock(1739491202, 340636, 0x1e0fffff, 1, 600000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"00000a1a65a877e512e9b729c8b4be307008ec5cf220c676bdfd33718cb9f018"});
-        assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
+        assert(consensus.hashGenesisBlock == uint256{"0000053720ce5b00480ad681cbca5471063bd50d7d022e8a01b0d31171657f07"});
+        assert(genesis.hashMerkleRoot == uint256{"01fe7bbfc54f833caa6dc25df74887c5ecc9dfc41723e09c686ed9f45e7b8538"});
 
         vSeeds.emplace_back("testnet4-seed.croncoin.org.");
 
@@ -367,15 +367,15 @@ public:
         m_chain_type = ChainType::SIGNET;
         consensus.signet_blocks = true;
         consensus.signet_challenge.assign(bin.begin(), bin.end());
-        consensus.nSubsidyHalvingInterval = 210000;
+        consensus.nSubsidyHalvingInterval = 175000;
         consensus.BIP34Height = 1;
         consensus.BIP34Hash = uint256{};
         consensus.BIP65Height = 1;
         consensus.BIP66Height = 1;
         consensus.CSVHeight = 1;
         consensus.SegwitHeight = 1;
-        consensus.nPowTargetTimespan = 14 * 24 * 60 * 60; // two weeks
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 2016 * 3 * 60; // 2016 blocks * 3 min
+        consensus.nPowTargetSpacing = 3 * 60;
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.enforce_BIP94 = false;
         consensus.fPowNoRetargeting = false;
@@ -405,10 +405,10 @@ public:
         nDefaultPort = 39333;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1739491200, 8705126, 0x1e0377ae, 1, 500000 * COIN);
+        genesis = CreateGenesisBlock(1739491200, 4572184, 0x1e0377ae, 1, 600000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"00000246f8a289b4afff08f374961e268e43b66d1219d0839b90ea1482425ed5"});
-        assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
+        assert(consensus.hashGenesisBlock == uint256{"0000007270d821388627f89007fa45d62b7e9f7ab03e3cb507989b0710060c77"});
+        assert(genesis.hashMerkleRoot == uint256{"01fe7bbfc54f833caa6dc25df74887c5ecc9dfc41723e09c686ed9f45e7b8538"});
 
         m_assumeutxo_data = {};
 
@@ -446,8 +446,8 @@ public:
         consensus.SegwitHeight = 0; // Always active unless overridden
         consensus.MinBIP9WarningHeight = 0;
         consensus.powLimit = uint256{"7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-        consensus.nPowTargetTimespan = 24 * 60 * 60; // one day
-        consensus.nPowTargetSpacing = 10 * 60;
+        consensus.nPowTargetTimespan = 144 * 3 * 60; // 144 blocks * 3 min
+        consensus.nPowTargetSpacing = 3 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.enforce_BIP94 = opts.enforce_bip94;
         consensus.fPowNoRetargeting = true;
@@ -504,10 +504,10 @@ public:
             consensus.vDeployments[deployment_pos].min_activation_height = version_bits_params.min_activation_height;
         }
 
-        genesis = CreateGenesisBlock(1739491200, 0, 0x207fffff, 1, 500000 * COIN);
+        genesis = CreateGenesisBlock(1739491200, 1, 0x207fffff, 1, 600000 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256{"0e0b5ab17c35e3e4ba0735e7c9c718a828eb04405c97149194a509fe9d6f22b5"});
-        assert(genesis.hashMerkleRoot == uint256{"dd0fe2c5cb1e4b2d9e00b9d97593a3adb2f36d25da777aa2a53b6ae4f9dad479"});
+        assert(consensus.hashGenesisBlock == uint256{"1e13e74316f12ae716da471be46d915d4d4d5600ba20d023e42e25f8359cba20"});
+        assert(genesis.hashMerkleRoot == uint256{"01fe7bbfc54f833caa6dc25df74887c5ecc9dfc41723e09c686ed9f45e7b8538"});
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();
@@ -519,21 +519,21 @@ public:
         m_assumeutxo_data = {
             {
                 .height = 110,
-                .hash_serialized = AssumeutxoHash{uint256{"3a0f7458412ae47c17c8319f249e187729c52aa6aab1d6aa31aaa79c8ec98d4e"}},
+                .hash_serialized = AssumeutxoHash{uint256{"5fd748d25e8247db0730ac511ff1f04851bf12d27a02ad481f1979a9c0598f58"}},
                 .m_chain_tx_count = 111,
-                .blockhash = uint256{"0fa6c3b62a57f817302bdf895b69cd37f548786cdf158cdf0afbab4ffebb3e4b"},
+                .blockhash = uint256{"5d9d647f7612b85fe1cd63fc55f84e8ebf8c8bdcb281c101b223be84c99c9dcf"},
             },
             {
                 .height = 200,
-                .hash_serialized = AssumeutxoHash{uint256{"7d11f0ff6313e079fc6ab783230730f1f36e534b65032483d30a432e121157a7"}},
-                .m_chain_tx_count = 202,
-                .blockhash = uint256{"1c47f7177faed63905462dd8748c22bd59862f8dead149190e40afa56208b380"},
+                .hash_serialized = AssumeutxoHash{uint256{"f2bc201f4d17abeea2a49d5ee81d5e3bddd1f13143481c8f54953ec04ce60aa3"}},
+                .m_chain_tx_count = 201,
+                .blockhash = uint256{"1cd15a06b036cd2d94623a96eb73e635665c84f24f47388ed146f934d347e918"},
             },
             {
                 .height = 299,
-                .hash_serialized = AssumeutxoHash{uint256{"c241781ebc737342de8555d30dd31cbaa994afd427a2ce44332d63cca2122dd5"}},
+                .hash_serialized = AssumeutxoHash{uint256{"f10ff831c471f4a233adab3fe613fcdec29b2193ed81082aa08f16f9194e046d"}},
                 .m_chain_tx_count = 334,
-                .blockhash = uint256{"5f43f5d3cdc71a3cba73e2d8b7d638f4dbeb3ed8eac268f85fe7074a55cd8bb4"},
+                .blockhash = uint256{"7223b9a7aeac9ff4a6c2364d23d63202fe517d1c1f03b15fab74f99a631be080"},
             },
         };
 
