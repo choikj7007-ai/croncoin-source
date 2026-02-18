@@ -122,12 +122,29 @@ echo "<hex값>" | xxd -r -p
 
 새로운 노드는 `croncoin.org`의 DNS 시드 서버를 통해 피어를 탐색합니다:
 
-| 네트워크 | DNS 시드 호스트네임 |
-|---|---|
-| 메인넷 | `seed1.croncoin.org`, `seed2.croncoin.org` |
-| 테스트넷 | `testnet-seed.croncoin.org` |
-| 테스트넷4 | `testnet4-seed.croncoin.org` |
-| 시그넷 | `signet-seed.croncoin.org` |
+| 네트워크 | DNS 시드 호스트네임 | 포트 | 필요 시점 |
+|---|---|---|---|
+| 메인넷 | `seed1.croncoin.org`, `seed2.croncoin.org` | 9333 | 런칭 전 필수 |
+| 테스트넷 | `testnet-seed.croncoin.org` | 19333 | 공개 테스트넷 운영 시 |
+| 테스트넷4 | `testnet4-seed.croncoin.org` | 49333 | 공개 테스트넷4 운영 시 |
+| 시그넷 | `signet-seed.croncoin.org` | 39333 | 공개 시그넷 운영 시 |
+
+> 테스트넷/테스트넷4/시그넷의 DNS 시드는 메인넷 런칭에 필수가 아닙니다. 각 테스트 네트워크를 공개적으로 운영할 때 설정하면 됩니다.
+
+네트워크마다 포트가 다르므로 **모든 네트워크를 동일한 서버에서 운영**할 수 있습니다. 예를 들어 서버 2대(IP-A, IP-B)로 전체 네트워크를 운영하는 경우:
+
+```bash
+# 서버 A
+croncoind                    # 메인넷 :9333
+croncoind -testnet           # 테스트넷 :19333
+croncoind -testnet4          # 테스트넷4 :49333
+
+# 서버 B
+croncoind                    # 메인넷 :9333
+croncoind -signet            # 시그넷 :39333
+```
+
+데이터 디렉토리는 네트워크별로 자동 분리되므로(`~/.croncoin/`, `~/.croncoin/testnet3/` 등) 충돌 없이 동작합니다.
 
 DNS 시드 없이 수동으로 부트스트랩할 수도 있습니다:
 
@@ -156,28 +173,33 @@ seed2.croncoin.org.    NS    ns-seed2.croncoin.org.
 ns-seed1.croncoin.org. A     <시더서버1-IP>
 ns-seed2.croncoin.org. A     <시더서버2-IP>
 
-; 테스트넷 시드
+; 테스트넷 시드 (메인넷과 동일 IP 사용 가능)
 testnet-seed.croncoin.org.   NS    ns-testnet.croncoin.org.
-ns-testnet.croncoin.org.     A     <테스트넷-시더서버-IP>
+ns-testnet.croncoin.org.     A     <시더서버1-IP>
 
 ; 테스트넷4 시드
 testnet4-seed.croncoin.org.  NS    ns-testnet4.croncoin.org.
-ns-testnet4.croncoin.org.    A     <테스트넷4-시더서버-IP>
+ns-testnet4.croncoin.org.    A     <시더서버1-IP>
 
 ; 시그넷 시드
 signet-seed.croncoin.org.    NS    ns-signet.croncoin.org.
-ns-signet.croncoin.org.      A     <시그넷-시더서버-IP>
+ns-signet.croncoin.org.      A     <시더서버2-IP>
 ```
 
 **방법 B: 정적 A 레코드 (간단)**
 
-소규모 네트워크에서는 노드 IP를 직접 A/AAAA 레코드로 등록할 수 있습니다:
+소규모 네트워크에서는 노드 IP를 직접 A/AAAA 레코드로 등록할 수 있습니다.
+모든 DNS 시드가 동일한 서버 IP를 가리켜도 됩니다 (포트가 다르므로 충돌 없음):
 
 ```
-seed1.croncoin.org.    A      <노드1-IP>
-seed1.croncoin.org.    A      <노드2-IP>
-seed1.croncoin.org.    AAAA   <노드-IPv6>
-seed2.croncoin.org.    A      <노드3-IP>
+; 메인넷 (서버 2대)
+seed1.croncoin.org.            A    <서버A-IP>
+seed2.croncoin.org.            A    <서버B-IP>
+
+; 테스트넷/테스트넷4/시그넷 (메인넷과 동일 IP 사용 가능)
+testnet-seed.croncoin.org.     A    <서버A-IP>
+testnet4-seed.croncoin.org.    A    <서버A-IP>
+signet-seed.croncoin.org.      A    <서버B-IP>
 ```
 
 > 초기 런칭 시에는 방법 B로 시작하고, 네트워크가 성장하면 방법 A(DNS 시더)로 전환하는 것을 권장합니다.
