@@ -172,7 +172,7 @@ class GetblockstatsTest(CronCoinTestFramework):
 
         self.log.info('Test block height 0')
         genesis_stats = self.nodes[0].getblockstats(0)
-        assert_equal(genesis_stats["blockhash"], "1e13e74316f12ae716da471be46d915d4d4d5600ba20d023e42e25f8359cba20")
+        assert_equal(genesis_stats["blockhash"], "2454c267ddbca62ff21f2d3b81e8756c274d5ec00d3a8bb246f336801c596f55")
         assert_equal(genesis_stats["utxo_increase"], 1)
         assert_equal(genesis_stats["utxo_size_inc"], 117)
         assert_equal(genesis_stats["utxo_increase_actual"], 0)

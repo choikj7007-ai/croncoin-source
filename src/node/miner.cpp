@@ -28,6 +28,7 @@
 #include <validation.h>
 
 #include <algorithm>
+#include <ctime>
 #include <utility>
 #include <numeric>
 
@@ -195,6 +196,23 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     Assert(nHeight > 0);
     coinbaseTx.nLockTime = static_cast<uint32_t>(nHeight - 1);
     coinbase_tx.lock_time = coinbaseTx.nLockTime;
+
+    // CronCoin metadata OP_RETURN
+    {
+        // Deterministic pseudo-random from previous block hash
+        int rnum = (pindexPrev->GetBlockHash().data()[0] % 6) + 1;
+        int parity = rnum % 2; // 짝수=0, 홀수=1
+        time_t blockTime = static_cast<time_t>(pblock->nTime);
+        struct tm utcTime;
+        gmtime_r(&blockTime, &utcTime);
+        char timeBuf[17];
+        strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M", &utcTime);
+
+        std::string meta = strprintf("CRN:R=%d:P=%d:T=%s:H=%d", rnum, parity, timeBuf, nHeight);
+        CScript metaScript;
+        metaScript << OP_RETURN << std::vector<unsigned char>(meta.begin(), meta.end());
+        coinbaseTx.vout.push_back(CTxOut(0, metaScript));
+    }
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);

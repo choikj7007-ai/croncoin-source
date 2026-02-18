@@ -33,7 +33,7 @@ from test_framework.blocktools import (
 )
 
 # CronCoin mainnet genesis
-GENESIS_HASH = "00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab"
+GENESIS_HASH = "00000cd0be01895d578936772a1dbd4c85764821a448b50f040e1ecead0006fe"
 GENESIS_TIME = 1739491200
 
 # Block interval (seconds) - short to trigger max difficulty increase

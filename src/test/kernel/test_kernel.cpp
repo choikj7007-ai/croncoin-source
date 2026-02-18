@@ -680,7 +680,7 @@ BOOST_AUTO_TEST_CASE(btck_block_header_tests)
     BOOST_CHECK_EQUAL(header.Nonce(), 808384);
     BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(header.Hash().ToBytes()), "0000074475c4d17c98ff9c039f99ec3d34870f162d9d21464bcc0e6be3189064");
     auto prev_hash = header.PrevHash();
-    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab");
+    BOOST_CHECK_EQUAL(byte_span_to_hex_string_reversed(prev_hash.ToBytes()), "00000cd0be01895d578936772a1dbd4c85764821a448b50f040e1ecead0006fe");
 
     auto raw_block = hex_string_to_byte_vec("00000020ab08e23ba5d74197460e017555f40bd88f4741d6c8f5956530e086010b0a000008a53076d371805e5381223aee7de62db8018b0570ecb2960d2bb43a8bcace9e9e87ae67ffff0f1ec0550c000102000000010000000000000000000000000000000000000000000000000000000000000000ffffffff025100ffffffff010046c323000000001976a914eadbac7f36c37e39361168b7aaee3cb24a25312d88ac00000000");
     Block block{raw_block};

@@ -120,7 +120,7 @@ class RPCInterfaceTest(CronCoinTestFramework):
         results = [
             {"result": 0},
             {"error": {"code": RPC_METHOD_NOT_FOUND, "message": "Method not found"}},
-            {"result": "1e13e74316f12ae716da471be46d915d4d4d5600ba20d023e42e25f8359cba20"},
+            {"result": "2454c267ddbca62ff21f2d3b81e8756c274d5ec00d3a8bb246f336801c596f55"},
             {"error": {"code": RPC_INVALID_REQUEST, "message": "Missing method"}},
         ]
 

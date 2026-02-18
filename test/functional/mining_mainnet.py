@@ -74,7 +74,7 @@ class MiningMainnetTest(CronCoinTestFramework):
         return prev_hash
 
 
-    EXPECTED_GENESIS_HASH = "00000a0b0186e0306595f5c8d641478fd80bf45575010e469741d7a53be208ab"
+    EXPECTED_GENESIS_HASH = "00000cd0be01895d578936772a1dbd4c85764821a448b50f040e1ecead0006fe"
 
     def run_test(self):
         node = self.nodes[0]

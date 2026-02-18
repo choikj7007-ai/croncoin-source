@@ -144,7 +144,7 @@ class AssumeutxoTest(CronCoinTestFramework):
             [(2).to_bytes(1, "little"), 32, None, "Bad snapshot format or truncated snapshot after deserializing 1 coins."],  # wrong txid coins count
             [b"\xfd\xff\xff", 32, None, "Mismatch in coins count in snapshot metadata and actual snapshot data"],  # txid coins count exceeds coins left
             [b"\x01", 33, None, None],  # wrong outpoint index
-            [b"\x82", 34, None, None],  # wrong coin code VARINT
+            [b"\x83", 34, None, None],  # wrong coin code VARINT
             [b"\x80", 34, None, None],  # another wrong coin code
             [b"\x84\x58", 34, None, None],  # wrong coin case with height 364 and coinbase 0
             [
@@ -169,12 +169,12 @@ class AssumeutxoTest(CronCoinTestFramework):
                 # depending on how the corruption affects parsing
                 expected_error("Bad snapshot")
             else:
-                msg = custom_message if custom_message is not None else f"Bad snapshot content hash: expected f10ff831c471f4a233adab3fe613fcdec29b2193ed81082aa08f16f9194e046d, got {wrong_hash}."
+                msg = custom_message if custom_message is not None else f"Bad snapshot content hash: expected 9796a8357325d62ad5378a4b43ac36bdd4c099379aee914ea69141b51d19e440, got {wrong_hash}."
                 expected_error(msg)
 
     def test_headers_not_synced(self, valid_snapshot_path):
         for node in self.nodes[1:]:
-            msg = "Unable to load UTXO snapshot: The base block header (7223b9a7aeac9ff4a6c2364d23d63202fe517d1c1f03b15fab74f99a631be080) must appear in the headers chain. Make sure all headers are syncing, and call loadtxoutset again."
+            msg = "Unable to load UTXO snapshot: The base block header (0c6546cd5226c27649aa4ad91c6011e454cbd750327f254ea874c6cd40f45af8) must appear in the headers chain. Make sure all headers are syncing, and call loadtxoutset again."
             assert_raises_rpc_error(-32603, msg, node.loadtxoutset, valid_snapshot_path)
 
     def test_invalid_chainstate_scenarios(self):
@@ -233,7 +233,7 @@ class AssumeutxoTest(CronCoinTestFramework):
             block_hash = node.getblockhash(height)
             node.invalidateblock(block_hash)
             assert_equal(node.getblockcount(), height - 1)
-            msg = "Unable to load UTXO snapshot: The base block header (7223b9a7aeac9ff4a6c2364d23d63202fe517d1c1f03b15fab74f99a631be080) is part of an invalid chain."
+            msg = "Unable to load UTXO snapshot: The base block header (0c6546cd5226c27649aa4ad91c6011e454cbd750327f254ea874c6cd40f45af8) is part of an invalid chain."
             assert_raises_rpc_error(-32603, msg, node.loadtxoutset, dump_output_path)
             node.reconsiderblock(block_hash)
 
@@ -474,7 +474,7 @@ class AssumeutxoTest(CronCoinTestFramework):
         def check_dump_output(output):
             assert_equal(
                 output['txoutset_hash'],
-                "f10ff831c471f4a233adab3fe613fcdec29b2193ed81082aa08f16f9194e046d")
+                "9796a8357325d62ad5378a4b43ac36bdd4c099379aee914ea69141b51d19e440")
             assert_equal(output["nchaintx"], blocks[SNAPSHOT_BASE_HEIGHT].chain_tx)
 
         check_dump_output(dump_output)
@@ -504,7 +504,7 @@ class AssumeutxoTest(CronCoinTestFramework):
         dump_output4 = n0.dumptxoutset(path='utxos4.dat', rollback=prev_snap_height)
         assert_equal(
             dump_output4['txoutset_hash'],
-            "8fbf83e2117ec2acd2c130d3aed05a1bcd9815205c72c924e3aa72b38399e650")
+            "dbdab189239f3d7fe804db457a69a62d20ed6f76a3fc50cc865007e4eece7361")
         assert_not_equal(sha256sum_file(dump_output['path']), sha256sum_file(dump_output4['path']))
 
         # Use a hash instead of a height
