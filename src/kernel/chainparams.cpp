@@ -156,7 +156,6 @@ public:
         // DNS seed hostnames for peer discovery
         vSeeds.emplace_back("seed1.croncoin.org.");
         vSeeds.emplace_back("seed2.croncoin.org.");
-        vSeeds.emplace_back("seed3.croncoin.org.");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,28);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,50);

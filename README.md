@@ -124,7 +124,7 @@ echo "<hex값>" | xxd -r -p
 
 | 네트워크 | DNS 시드 호스트네임 |
 |---|---|
-| 메인넷 | `seed1.croncoin.org`, `seed2.croncoin.org`, `seed3.croncoin.org` |
+| 메인넷 | `seed1.croncoin.org`, `seed2.croncoin.org` |
 | 테스트넷 | `testnet-seed.croncoin.org` |
 | 테스트넷4 | `testnet4-seed.croncoin.org` |
 | 시그넷 | `signet-seed.croncoin.org` |
@@ -150,13 +150,11 @@ DNS 시더는 네트워크를 크롤링하여 활성 노드 IP를 자동으로 �
 각 시드 호스트네임마다 NS 레코드와 시더 서버 A 레코드를 설정합니다:
 
 ```
-; 메인넷 시드 (3개)
+; 메인넷 시드 (2개)
 seed1.croncoin.org.    NS    ns-seed1.croncoin.org.
 seed2.croncoin.org.    NS    ns-seed2.croncoin.org.
-seed3.croncoin.org.    NS    ns-seed3.croncoin.org.
 ns-seed1.croncoin.org. A     <시더서버1-IP>
 ns-seed2.croncoin.org. A     <시더서버2-IP>
-ns-seed3.croncoin.org. A     <시더서버3-IP>
 
 ; 테스트넷 시드
 testnet-seed.croncoin.org.   NS    ns-testnet.croncoin.org.
@@ -178,10 +176,8 @@ ns-signet.croncoin.org.      A     <시그넷-시더서버-IP>
 ```
 seed1.croncoin.org.    A      <노드1-IP>
 seed1.croncoin.org.    A      <노드2-IP>
-seed1.croncoin.org.    A      <노드3-IP>
 seed1.croncoin.org.    AAAA   <노드-IPv6>
-seed2.croncoin.org.    A      <노드4-IP>
-seed3.croncoin.org.    A      <노드5-IP>
+seed2.croncoin.org.    A      <노드3-IP>
 ```
 
 > 초기 런칭 시에는 방법 B로 시작하고, 네트워크가 성장하면 방법 A(DNS 시더)로 전환하는 것을 권장합니다.
@@ -274,7 +270,7 @@ Python으로 작성된 [회귀 및 통합 테스트](/test)도 있습니다.
 
 ### 1단계: 필수 (런칭 전 반드시 완료)
 
-- [x] **DNS 시드 노드 구성**: `croncoin.org` 도메인에 DNS 시드 호스트네임 설정 완료 (seed1/2/3, testnet-seed, testnet4-seed, signet-seed). DNS 시더 서버를 배포하고 `contrib/seeds/nodes_main.txt`에 노드 IP를 등록해야 합니다.
+- [x] **DNS 시드 노드 구성**: `croncoin.org` 도메인에 DNS 시드 호스트네임 설정 완료 (seed1/2, testnet-seed, testnet4-seed, signet-seed). DNS 시더 서버를 배포하고 `contrib/seeds/nodes_main.txt`에 노드 IP를 등록해야 합니다.
 - [ ] **시드 노드 배포**: 지리적으로 분산된 4~6개 이상의 시드 노드에 `croncoind`를 배포하고 안정적인 운영을 보장합니다.
 - [ ] **전체 빌드 검증**: `croncoind`, `croncoin-cli`, `croncoin-qt`가 Linux, macOS, Windows에서 정상적으로 빌드되는지 확인합니다. 재현 가능한 빌드 방법을 공개합니다.
 - [ ] **보안 감사**: P2P 메시지 처리, 비트코인 네트워크와의 포트 격리, 피어 탐색 부트스트래핑을 감사합니다.
