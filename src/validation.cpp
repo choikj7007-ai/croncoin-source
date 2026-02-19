@@ -4141,6 +4141,15 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast())
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "time-too-old", "block's timestamp is too early");
 
+    // Enforce minimum block interval on mainnet: blocks must be at least
+    // nPowTargetSpacing (180s) seconds after the previous block.
+    // This prevents rapid-fire mining when difficulty is low (e.g., chain start).
+    if (!consensusParams.fPowAllowMinDifficultyBlocks && !consensusParams.fPowNoRetargeting) {
+        if (block.GetBlockTime() < pindexPrev->GetBlockTime() + consensusParams.nPowTargetSpacing)
+            return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "time-too-soon",
+                "block's timestamp is too soon after previous block");
+    }
+
     // Testnet4 and regtest only: Check timestamp against prev for difficulty-adjustment
     // blocks to prevent timewarp attacks (see https://github.com/croncoin/croncoin/pull/15482).
     if (consensusParams.enforce_BIP94) {

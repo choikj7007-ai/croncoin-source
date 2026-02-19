@@ -163,6 +163,9 @@ static bool GenerateBlock(ChainstateManager& chainman, CBlock&& block, uint64_t&
 
 static UniValue generateBlocks(ChainstateManager& chainman, Mining& miner, const CScript& coinbase_output_script, int nGenerate, uint64_t nMaxTries)
 {
+    if (!miner.isTestChain()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "generatetoaddress is not available on mainnet. Use cpuminer for PoW mining.");
+    }
     UniValue blockHashes(UniValue::VARR);
     while (nGenerate > 0 && !chainman.m_interrupt) {
         std::unique_ptr<BlockTemplate> block_template(miner.createNewBlock({ .coinbase_output_script = coinbase_output_script, .include_dummy_extranonce = true }));
@@ -345,6 +348,11 @@ static RPCHelpMan generateblock()
 
     NodeContext& node = EnsureAnyNodeContext(request.context);
     Mining& miner = EnsureMining(node);
+
+    if (!miner.isTestChain()) {
+        throw JSONRPCError(RPC_MISC_ERROR, "generateblock is not available on mainnet. Use cpuminer for PoW mining.");
+    }
+
     const CTxMemPool& mempool = EnsureMemPool(node);
 
     std::vector<CTransactionRef> txs;
@@ -768,7 +776,9 @@ static RPCHelpMan getblocktemplate()
             throw JSONRPCError(RPC_CLIENT_NOT_CONNECTED, CLIENT_NAME " is not connected!");
         }
 
-        if (miner.isInitialBlockDownload()) {
+        // Skip IBD check at genesis (height 0) to allow bootstrapping a new chain.
+        auto tip = miner.getTip();
+        if (tip && tip->height > 0 && miner.isInitialBlockDownload()) {
             throw JSONRPCError(RPC_CLIENT_IN_INITIAL_DOWNLOAD, CLIENT_NAME " is in initial sync and waiting for blocks...");
         }
     }
