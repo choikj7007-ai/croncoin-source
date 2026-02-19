@@ -860,9 +860,10 @@ static RPCHelpMan getblocktemplate()
         throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the signet rule set (call with {\"rules\": [\"segwit\", \"signet\"]})");
     }
 
-    // GBT must be called with 'segwit' set in the rules
+    // Allow legacy miners (e.g. cpuminer 2.5.1) that don't declare segwit support.
+    // Segwit is always active; the coinbase witness commitment is added automatically.
     if (!setClientRules.contains("segwit")) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "getblocktemplate must be called with the segwit rule set (call with {\"rules\": [\"segwit\"]})");
+        setClientRules.insert("segwit");
     }
 
     // Update block
