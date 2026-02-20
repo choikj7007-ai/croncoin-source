@@ -4,13 +4,15 @@
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test mining on an alternate mainnet
 
-Test mining related RPCs that involve difficulty adjustment, which
-regtest doesn't have.
+Test mining related RPCs on mainnet, which has different consensus rules
+than regtest (difficulty adjustment, 180-second minimum block interval).
 
 It uses an alternate mainnet chain. See data/README.md for how it was generated.
 
-Mine one retarget period worth of blocks with a short interval in
-order to maximally raise the difficulty. Verify this using the getmininginfo RPC.
+Mine one retarget period worth of blocks at the target spacing (180s).
+Due to Bitcoin's off-by-one in difficulty calculation (2015 intervals for
+2016 blocks), difficulty increases very slightly (~0.05%) after retarget
+even with exactly target-spaced blocks. Verify this using getmininginfo.
 
 """
 
@@ -21,8 +23,6 @@ from test_framework.util import (
 from test_framework.blocktools import (
     DIFF_1_N_BITS,
     DIFF_1_TARGET,
-    DIFF_4_N_BITS,
-    DIFF_4_TARGET,
     create_coinbase,
     nbits_str,
     target_str
@@ -31,6 +31,7 @@ from test_framework.blocktools import (
 from test_framework.messages import (
     CBlock,
     SEQUENCE_FINAL,
+    uint256_from_compact,
 )
 
 import json
@@ -53,13 +54,13 @@ class MiningMainnetTest(CronCoinTestFramework):
             help='Block data file (default: %(default)s)',
         )
 
-    def mine(self, height, prev_hash, blocks, node):
+    def mine(self, height, prev_hash, blocks, node, nbits=DIFF_1_N_BITS):
         self.log.debug(f"height={height}")
         block = CBlock()
         block.nVersion = 0x20000000
         block.hashPrevBlock = int(prev_hash, 16)
         block.nTime = blocks['timestamps'][height - 1]
-        block.nBits = DIFF_1_N_BITS if height < 2016 else DIFF_4_N_BITS
+        block.nBits = nbits
         block.nNonce = blocks['nonces'][height - 1]
         block.vtx = [create_coinbase(height=height, script_pubkey=bytes.fromhex(COINBASE_SCRIPT_PUBKEY), halving_period=175000)]
         # The alternate mainnet chain was mined with non-timelocked coinbase txs.
@@ -100,27 +101,32 @@ class MiningMainnetTest(CronCoinTestFramework):
 
         assert_equal(node.getblockcount(), 2015)
 
-        self.log.info("Check difficulty adjustment with getmininginfo")
+        self.log.info("Check difficulty with getmininginfo")
         mining_info = node.getmininginfo()
         assert_equal(mining_info['difficulty'], 1)
         assert_equal(mining_info['bits'], nbits_str(DIFF_1_N_BITS))
         assert_equal(mining_info['target'], target_str(DIFF_1_TARGET))
 
-        # Difficulty is DIFF_1 mantissa / DIFF_4 mantissa (not exactly 4 due to lossy nBits encoding).
-        # Use float() because RPC returns Decimal (via parse_float=Decimal).
-        expected_diff_4 = (DIFF_1_N_BITS & 0xffffff) / (DIFF_4_N_BITS & 0xffffff)
+        # Due to Bitcoin's off-by-one in difficulty calculation (actual timespan
+        # covers 2015 intervals but target timespan assumes 2016), difficulty
+        # increases very slightly even with exactly target-spaced blocks.
         assert_equal(mining_info['next']['height'], 2016)
-        assert_equal(float(mining_info['next']['difficulty']), expected_diff_4)
-        assert_equal(mining_info['next']['bits'], nbits_str(DIFF_4_N_BITS))
-        assert_equal(mining_info['next']['target'], target_str(DIFF_4_TARGET))
+        next_difficulty = float(mining_info['next']['difficulty'])
+        self.log.info(f"Next difficulty after retarget: {next_difficulty}")
+        assert next_difficulty > 1.0, f"Expected difficulty > 1, got {next_difficulty}"
+        assert next_difficulty < 1.001, f"Expected difficulty < 1.001, got {next_difficulty}"
 
-        # Mine first block of the second retarget period
+        # Get the retarget nBits from the node for block 2016
+        next_nbits = int(mining_info['next']['bits'], 16)
+        next_target = uint256_from_compact(next_nbits)
+
+        # Mine first block of the second retarget period with retarget nBits
         height = 2016
-        prev_hash = self.mine(height, prev_hash, blocks, node)
+        prev_hash = self.mine(height, prev_hash, blocks, node, nbits=next_nbits)
         assert_equal(node.getblockcount(), height)
 
         mining_info = node.getmininginfo()
-        assert_equal(float(mining_info['difficulty']), expected_diff_4)
+        assert_equal(float(mining_info['difficulty']), next_difficulty)
 
         self.log.info("getblock RPC should show historical target")
         block_info = node.getblock(node.getblockhash(1))

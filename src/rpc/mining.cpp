@@ -881,8 +881,10 @@ static RPCHelpMan getblocktemplate()
         CBlockIndex* pindexPrevNew = chainman.m_blockman.LookupBlockIndex(tip);
         time_start = GetTime();
 
-        // Create new block
-        block_template = miner.createNewBlock({.include_dummy_extranonce = true});
+        // Create new block. Skip TestBlockValidity because the block timestamp
+        // may be before the minimum block interval and will be adjusted by
+        // UpdateTime() below before being returned to the miner.
+        block_template = miner.createNewBlock({.include_dummy_extranonce = true, .test_block_validity = false});
         CHECK_NONFATAL(block_template);
 
 
@@ -1002,7 +1004,12 @@ static RPCHelpMan getblocktemplate()
     result.pushKV("coinbasevalue", block.vtx[0]->vout[0].nValue);
     result.pushKV("longpollid", tip.GetHex() + ToString(nTransactionsUpdatedLast));
     result.pushKV("target", hashTarget.GetHex());
-    result.pushKV("mintime", GetMinimumTime(pindexPrev, consensusParams.DifficultyAdjustmentInterval()));
+    int64_t nMinTime = GetMinimumTime(pindexPrev, consensusParams.DifficultyAdjustmentInterval());
+    if (!consensusParams.fPowAllowMinDifficultyBlocks && !consensusParams.fPowNoRetargeting
+        && pindexPrev->nHeight >= 500) {
+        nMinTime = std::max(nMinTime, pindexPrev->GetBlockTime() + consensusParams.nPowTargetSpacing);
+    }
+    result.pushKV("mintime", nMinTime);
     result.pushKV("mutable", std::move(aMutable));
     result.pushKV("noncerange", "00000000ffffffff");
     int64_t nSigOpLimit = MAX_BLOCK_SIGOPS_COST;

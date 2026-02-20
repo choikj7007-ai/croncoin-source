@@ -4144,8 +4144,9 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, BlockValidatio
     // Enforce minimum block interval on mainnet: blocks must be at least
     // nPowTargetSpacing (180s) seconds after the previous block.
     // This prevents rapid-fire mining when difficulty is low (e.g., chain start).
+    // Apply only after height 500 to avoid rejecting early blocks.
     if (!consensusParams.fPowAllowMinDifficultyBlocks && !consensusParams.fPowNoRetargeting) {
-        if (block.GetBlockTime() < pindexPrev->GetBlockTime() + consensusParams.nPowTargetSpacing)
+        if (pindexPrev->nHeight >= 500 && block.GetBlockTime() < pindexPrev->GetBlockTime() + consensusParams.nPowTargetSpacing)
             return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "time-too-soon",
                 "block's timestamp is too soon after previous block");
     }

@@ -51,7 +51,7 @@ from test_framework.wallet import (
 
 
 DIFFICULTY_ADJUSTMENT_INTERVAL = 144
-MAX_FUTURE_BLOCK_TIME = 2 * 3600
+MAX_FUTURE_BLOCK_TIME = 3 * 60
 MAX_TIMEWARP = 600
 VERSIONBITS_TOP_BITS = 0x20000000
 VERSIONBITS_DEPLOYMENT_TESTDUMMY_BIT = 28
@@ -205,16 +205,21 @@ class MiningTest(CronCoinTestFramework):
             self.nodes[0].setmocktime(t)
             self.generate(self.wallet, 1, sync_fun=self.no_op)
 
-        self.log.info("Create block two hours in the future")
-        self.nodes[0].setmocktime(t + MAX_FUTURE_BLOCK_TIME)
+        # Create a block with a large future timestamp using mocktime.
+        # Use a gap larger than MAX_TIMEWARP so BIP94 actually constrains
+        # the next block's timestamp.
+        FUTURE_GAP = MAX_TIMEWARP + MAX_FUTURE_BLOCK_TIME  # 780s
+        self.log.info(f"Create block {FUTURE_GAP}s in the future (using mocktime)")
+        self.nodes[0].setmocktime(t + FUTURE_GAP)
         self.generate(self.wallet, 1, sync_fun=self.no_op)
-        assert_equal(node.getblock(node.getbestblockhash())['time'], t + MAX_FUTURE_BLOCK_TIME)
+        assert_equal(node.getblock(node.getbestblockhash())['time'], t + FUTURE_GAP)
 
         self.log.info("First block template of retarget period can't use wall clock time")
         self.nodes[0].setmocktime(t)
         # The template will have an adjusted timestamp, which we then modify
         tmpl = node.getblocktemplate(NORMAL_GBT_REQUEST_PARAMS)
-        assert_greater_than_or_equal(tmpl['curtime'], t + MAX_FUTURE_BLOCK_TIME - MAX_TIMEWARP)
+        # BIP94 forces curtime >= prev_block_time - MAX_TIMEWARP
+        assert_greater_than_or_equal(tmpl['curtime'], t + FUTURE_GAP - MAX_TIMEWARP)
         # mintime and curtime should match
         assert_equal(tmpl['mintime'], tmpl['curtime'])
 
@@ -227,6 +232,8 @@ class MiningTest(CronCoinTestFramework):
         block.vtx = [create_coinbase(height=int(tmpl["height"]))]
         block.hashMerkleRoot = block.calc_merkle_root()
         block.solve()
+        # Advance mocktime so the proposal block isn't "time-too-new"
+        self.nodes[0].setmocktime(block.nTime)
         assert_equal(node.getblocktemplate(template_request={
             'data': block.serialize().hex(),
             'mode': 'proposal',
@@ -236,14 +243,15 @@ class MiningTest(CronCoinTestFramework):
         bad_block = copy.deepcopy(block)
         bad_block.nTime = t
         bad_block.solve()
+        self.nodes[0].setmocktime(t)
         assert_raises_rpc_error(-25, 'time-timewarp-attack', lambda: node.submitheader(hexdata=CBlockHeader(bad_block).serialize().hex()))
 
         self.log.info("Test timewarp protection boundary")
-        bad_block.nTime = t + MAX_FUTURE_BLOCK_TIME - MAX_TIMEWARP - 1
+        bad_block.nTime = t + FUTURE_GAP - MAX_TIMEWARP - 1
         bad_block.solve()
         assert_raises_rpc_error(-25, 'time-timewarp-attack', lambda: node.submitheader(hexdata=CBlockHeader(bad_block).serialize().hex()))
 
-        bad_block.nTime = t + MAX_FUTURE_BLOCK_TIME - MAX_TIMEWARP
+        bad_block.nTime = t + FUTURE_GAP - MAX_TIMEWARP
         bad_block.solve()
         node.submitheader(hexdata=CBlockHeader(bad_block).serialize().hex())
 
@@ -433,8 +441,10 @@ class MiningTest(CronCoinTestFramework):
         block.vtx = [coinbase_tx]
         block.hashMerkleRoot = block.calc_merkle_root()
 
-        self.log.info("getblocktemplate: segwit rule must be set")
-        assert_raises_rpc_error(-8, "getblocktemplate must be called with the segwit rule set", node.getblocktemplate, {})
+        self.log.info("getblocktemplate: legacy miners without segwit rule should be allowed")
+        # Segwit is auto-inserted for legacy miners (e.g. cpuminer 2.5.1)
+        tmpl_no_rules = node.getblocktemplate({})
+        assert 'bits' in tmpl_no_rules
 
         self.log.info("submitblock: Test block decode failure")
         assert_raises_rpc_error(-22, "Block decode failed", node.submitblock, block.serialize()[:-15].hex())

@@ -5,9 +5,12 @@
 """Generate mainnet_alt.json for mining_mainnet test.
 
 Mines 2016 blocks against CronCoin's mainnet genesis block.
-Blocks use 30-second intervals to trigger maximum (4x) difficulty increase.
+Blocks use 720-second intervals (4x target spacing) to trigger maximum
+difficulty decrease. This respects the 180-second minimum block interval
+enforced on mainnet after height 500.
 
 Expected runtime: ~1-3 hours (single-threaded Python hashlib).
+For faster generation, use generate_mainnet_alt_fast.py with the C grinder.
 """
 
 import hashlib
@@ -27,8 +30,6 @@ from test_framework.messages import (
 from test_framework.blocktools import (
     DIFF_1_N_BITS,
     DIFF_1_TARGET,
-    DIFF_4_N_BITS,
-    DIFF_4_TARGET,
     create_coinbase,
 )
 
@@ -36,8 +37,8 @@ from test_framework.blocktools import (
 GENESIS_HASH = "00000cd0be01895d578936772a1dbd4c85764821a448b50f040e1ecead0006fe"
 GENESIS_TIME = 1739491200
 
-# Block interval (seconds) - short to trigger max difficulty increase
-BLOCK_INTERVAL = 30
+# Block interval (seconds) - matches target spacing (nPowTargetSpacing)
+BLOCK_INTERVAL = 180
 
 # Coinbase script pubkey (see data/README.md)
 COINBASE_SCRIPT_PUBKEY = "76a914eadbac7f36c37e39361168b7aaee3cb24a25312d88ac"
@@ -88,8 +89,10 @@ def main():
 
     for height in range(1, 2017):
         timestamp = GENESIS_TIME + height * BLOCK_INTERVAL
-        nbits = DIFF_1_N_BITS if height < 2016 else DIFF_4_N_BITS
-        target = DIFF_1_TARGET if height < 2016 else DIFF_4_TARGET
+        # All blocks use DIFF_1 because difficulty stays at powLimit
+        # (initial difficulty is already minimum, can't decrease further)
+        nbits = DIFF_1_N_BITS
+        target = DIFF_1_TARGET
 
         block_start = time.time()
         prev_hash, nonce = mine_block(height, prev_hash, timestamp, nbits, target)

@@ -198,17 +198,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
     coinbase_tx.lock_time = coinbaseTx.nLockTime;
 
     // CronCoin metadata OP_RETURN
+    // Dice (R=, P=) is no longer stored here to avoid circular dependency.
+    // Dice is computed from the current block's hash (last 6 bytes % 6 + 1)
+    // after mining, so it cannot be predicted or manipulated.
     {
-        // Deterministic pseudo-random from previous block hash
-        int rnum = (pindexPrev->GetBlockHash().data()[0] % 6) + 1;
-        int parity = rnum % 2; // 짝수=0, 홀수=1
         time_t blockTime = static_cast<time_t>(pblock->nTime);
         struct tm utcTime;
         gmtime_r(&blockTime, &utcTime);
         char timeBuf[17];
         strftime(timeBuf, sizeof(timeBuf), "%Y-%m-%d %H:%M", &utcTime);
 
-        std::string meta = strprintf("CRN:R=%d:P=%d:T=%s:H=%d", rnum, parity, timeBuf, nHeight);
+        std::string meta = strprintf("CRN:T=%s:H=%d", timeBuf, nHeight);
         CScript metaScript;
         metaScript << OP_RETURN << std::vector<unsigned char>(meta.begin(), meta.end());
         coinbaseTx.vout.push_back(CTxOut(0, metaScript));

@@ -174,6 +174,20 @@ UniValue blockheaderToJSON(const CBlockIndex& tip, const CBlockIndex& blockindex
     result.pushKV("chainwork", blockindex.nChainWork.GetHex());
     result.pushKV("nTx", blockindex.nTx);
 
+    // CronCoin dice: computed from last 6 bytes of displayed block hash % 6 + 1.
+    // uint256 stores bytes in little-endian, so data()[0..5] = last 6 bytes of hex string.
+    // Read data()[5] down to data()[0] to get big-endian value matching the hex display order.
+    {
+        const uint256& hash = blockindex.GetBlockHash();
+        uint64_t hash_val = 0;
+        for (int i = 5; i >= 0; i--) {
+            hash_val = (hash_val << 8) | hash.data()[i];
+        }
+        int dice = static_cast<int>(hash_val % 6) + 1;
+        result.pushKV("dice", dice);
+        result.pushKV("parity", dice % 2);
+    }
+
     if (blockindex.pprev)
         result.pushKV("previousblockhash", blockindex.pprev->GetBlockHash().GetHex());
     if (pnext)
